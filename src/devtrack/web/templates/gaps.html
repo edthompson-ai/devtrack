@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Gaps{% endblock %}
+{% block body %}
+<h1>Gaps</h1>
+<p class="lede muted">What the linked data says is missing. Suggested commits come from lexical similarity (shared words and identifiers, not meaning) and are for a person to confirm, never linked automatically.</p>
+
+<h2>Criteria with no linked code ({{ no_code|length }})</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Criterion</th><th>Text</th><th>Story</th><th>Possible matching commits</th></tr></thead>
+  {% for r in no_code %}
+  <tr><td class="mono">{{ r.criterion }}</td><td>{{ r.criterion_text }}</td><td class="mono small">{{ r.story }}</td>
+    <td class="small">{% for s in suggestions.get(r.criterion, []) %}<div><span class="mono">{{ s.sha | short }}</span> {{ s.message.splitlines()[0][:70] }} <span class="muted">({{ '%.2f' % s.similarity }})</span></div>{% else %}<span class="muted">no close match</span>{% endfor %}</td></tr>
+  {% endfor %}
+</table></div>
+
+<h2 id="stale">Requirement changed after the code merged ({{ stale|length }})</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Requirement</th><th>Criterion</th><th>Code merged</th><th>Requirement changed</th><th>Why it changed</th></tr></thead>
+  {% for r in stale %}<tr><td class="mono"><a href="{{ url_for('trace', req=r.requirement) }}">{{ r.requirement }}</a> v{{ r.version }}</td><td class="mono">{{ r.criterion }}</td><td class="mono">{{ r.code_merged_at | day }}</td><td class="mono">{{ r.requirement_changed_at | day }}</td><td>{{ r.change_note or '' }}</td></tr>{% endfor %}
+</table></div>
+
+<h2 id="no-tests">Criteria with code but no linked test ({{ no_tests|length }})</h2>
+<details><summary>Show all</summary>
+<div class="table-wrap" style="margin-top:8px"><table>
+  <thead><tr><th>Criterion</th><th>Text</th><th class="num">Commits</th></tr></thead>
+  {% for r in no_tests %}<tr><td class="mono">{{ r.criterion }}</td><td>{{ r.criterion_text }}</td><td class="num">{{ r.linked_commits }}</td></tr>{% endfor %}
+</table></div></details>
+
+<h2 id="orphans">Commits tied to no task ({{ orphans|length }})</h2>
+<details><summary>Show all</summary>
+<div class="table-wrap" style="margin-top:8px"><table>
+  <thead><tr><th>Repo</th><th>Commit</th><th>Message</th><th>PR</th><th>Date</th><th>Source</th></tr></thead>
+  {% for r in orphans %}<tr><td class="small">{{ r.repo }}</td><td class="mono">{{ r.sha | short }}</td><td>{{ r.message.splitlines()[0][:90] }}</td><td class="mono">{{ '#' ~ r.pr_number if r.pr_number else '' }}</td><td class="mono">{{ r.committed_at | day }}</td><td class="small muted">{{ r.source_system }}</td></tr>{% endfor %}
+</table></div></details>
+{% endblock %}

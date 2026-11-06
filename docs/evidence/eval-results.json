@@ -1,0 +1,89 @@
+{
+  "_about": "Eval runs against seed/eval_labels.json. Written by devtrack.evals.evidence from the database the runs were stored in. models_reported is what each response said answered.",
+  "runs": [
+    {
+      "run_id": 1,
+      "prompt_version": "heuristic-v1",
+      "model": "heuristic",
+      "notes": "offline keyword baseline",
+      "started_at": "2026-11-04T12:39:22Z",
+      "n": 48,
+      "accuracy": 0.604,
+      "fail_precision": 0.643,
+      "fail_recall": 0.562,
+      "unclear_rate": 0.271,
+      "cost_usd": 0.0,
+      "model_calls": 0,
+      "models_reported": [
+        {
+          "model_version": "heuristic",
+          "n": 45,
+          "input_tokens": 0,
+          "output_tokens": 0
+        },
+        {
+          "model_version": "rule:no-linked-code",
+          "n": 3,
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      ]
+    },
+    {
+      "run_id": 2,
+      "prompt_version": "v1",
+      "model": "claude-sonnet-5-5",
+      "notes": "backend=claude-cli (claude -p --output-format json)",
+      "started_at": "2026-11-04T12:44:21Z",
+      "n": 48,
+      "accuracy": 0.958,
+      "fail_precision": 0.938,
+      "fail_recall": 0.938,
+      "unclear_rate": 0.083,
+      "cost_usd": 1.2513,
+      "model_calls": 45,
+      "models_reported": [
+        {
+          "model_version": "claude-sonnet-5-5",
+          "n": 45,
+          "input_tokens": 819189,
+          "output_tokens": 20085
+        },
+        {
+          "model_version": "rule:no-linked-code",
+          "n": 3,
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      ]
+    },
+    {
+      "run_id": 3,
+      "prompt_version": "v2",
+      "model": "claude-sonnet-5-5",
+      "notes": "backend=claude-cli (claude -p --output-format json)",
+      "started_at": "2026-11-04T12:48:03Z",
+      "n": 48,
+      "accuracy": 1.0,
+      "fail_precision": 1.0,
+      "fail_recall": 1.0,
+      "unclear_rate": 0.083,
+      "cost_usd": 1.2186,
+      "model_calls": 45,
+      "models_reported": [
+        {
+          "model_version": "claude-sonnet-5-5",
+          "n": 45,
+          "input_tokens": 867259,
+          "output_tokens": 11836
+        },
+        {
+          "model_version": "rule:no-linked-code",
+          "n": 3,
+          "input_tokens": 0,
+          "output_tokens": 0
+        }
+      ]
+    }
+  ]
+}

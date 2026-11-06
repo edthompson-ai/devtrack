@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Query performance{% endblock %}
+{% block body %}
+<h1>Query performance</h1>
+<p class="lede muted">The six saved queries plus full-text search, timed with and without the indexes in <code>002_indexes.sql</code>, on a database scaled to production-like volume. Produced by <code>devtrack bench</code>.</p>
+{% for dialect, rep in reports.items() %}
+<h2>{{ rep.server }}</h2>
+<p class="small muted">{% for k, v in rep.row_counts.items() %}{{ k.replace('_', ' ') }} {{ '{:,}'.format(v) }}{% if not loop.last %} · {% endif %}{% endfor %}. Median of {{ rep.runs_per_query }} runs. Indexes took {{ rep.index_build_seconds }}s to build.</p>
+<div class="table-wrap"><table>
+  <thead><tr><th>Query</th><th class="num">Before (ms)</th><th class="num">After (ms)</th><th class="num">Change</th><th>Plan after indexing</th></tr></thead>
+  {% for b, a in rep.pairs %}
+  <tr>
+    <td>{{ b.title.split(' (')[0] }}</td>
+    <td class="num">{{ '{:,.1f}'.format(b.median_ms) if b.median_ms is not none else '> 60,000 (timed out)' }}</td>
+    <td class="num">{{ '{:,.1f}'.format(a.median_ms) if a.median_ms is not none else 'timed out' }}</td>
+    <td class="num">{% if b.median_ms is none and a.median_ms %}&gt; {{ '{:,.0f}'.format(60000 / a.median_ms) }}x faster{% elif b.median_ms and a.median_ms %}{% set r = b.median_ms / a.median_ms %}{% if r >= 1.15 %}{{ '%.1f' % r }}x faster{% elif r <= 0.87 %}{{ '%.1f' % (1 / r) }}x slower{% else %}no change{% endif %}{% endif %}</td>
+    <td class="small"><details><summary>{{ a.plan_summary[:90] }}{{ '…' if a.plan_summary|length > 90 }}</summary><p class="small muted" style="margin-top:6px">Before</p><pre>{{ b.plan_text }}</pre><p class="small muted" style="margin-top:6px">After</p><pre>{{ a.plan_text }}</pre></details></td>
+  </tr>
+  {% endfor %}
+</table></div>
+{% else %}
+<div class="panel"><p>No benchmark results yet. Run <code>devtrack bench</code> against an empty database.</p></div>
+{% endfor %}
+<h2>Reading the results</h2>
+<div class="panel small">
+  <p>Indexes pay off for selective lookups and anti-joins: the full trace for one requirement, finding commits with no task, full-text search. Whole-table aggregations (cycle time, review turnaround) read every row anyway; Postgres keeps its hash joins and doesn't change, while SQLite, which has no hash join, can switch to slower nested loops through a new index. Every index also costs write time and disk, so each one in <code>002_indexes.sql</code> is tied to a query it serves.</p>
+</div>
+{% endblock %}

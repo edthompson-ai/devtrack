@@ -1,0 +1,38 @@
+$ devtrack dq
+ok   no_orphans:stories.feature_id
+ok   no_orphans:tasks.story_id
+ok   no_orphans:acceptance_criteria.story_id
+ok   no_orphans:reviews.pull_request_id
+ok   no_orphans:reviews.reviewer_id
+ok   no_orphans:commits.author_id
+ok   no_orphans:pull_requests.author_id
+ok   no_orphans:task_criteria.task_id
+ok   no_orphans:task_criteria.criterion_id
+ok   no_orphans:commit_tasks.commit_id
+ok   no_orphans:commit_tasks.task_id
+ok   no_orphans:requirement_criteria.requirement_id
+ok   no_orphans:requirement_criteria.criterion_id
+ok   no_orphans:pull_request_commits.pull_request_id
+ok   no_orphans:pull_request_commits.commit_id
+ok   no_duplicate_links:task_criteria
+ok   no_duplicate_links:commit_tasks
+ok   no_duplicate_links:requirement_criteria
+ok   no_duplicate_links:pull_request_commits
+ok   no_duplicate_links:criterion_tests
+ok   required:features.title
+ok   required:stories.title
+ok   required:tasks.title
+ok   required:acceptance_criteria.text
+ok   required:requirements.body
+ok   required:commits.message
+ok   required:pull_requests.title
+ok   required:people.display_name
+ok   backlog_tasks_have_story
+ok   merged_prs_have_merge_time
+ok   stories_have_criteria
+ok   no_failed_staging_rows
+ok   requirement_tree_has_no_cycles
+ok   verification_on_own_repo_build
+ok   no_duplicate_source_keys
+
+35/35 checks passed

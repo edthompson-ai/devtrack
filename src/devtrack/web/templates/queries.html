@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}Saved queries{% endblock %}
+{% block body %}
+<h1>Saved queries</h1>
+<p class="lede muted">The six questions this database is built to answer. Each runs unchanged on SQLite and Postgres.</p>
+<div class="chips">{% for slug, q in queries.items() %}<a href="{{ url_for('queries', q=slug) }}" {% if selected and selected.slug == slug %}style="border-color:var(--accent)"{% endif %}>{{ q.number }}. {{ q.title.rstrip('.').split(':')[0].split(' (')[0] }}</a>{% endfor %}</div>
+{% if selected %}
+<h2>{{ selected.number }}. {{ selected.title }}</h2>
+{% if selected.params %}<form class="inline" method="get"><input type="hidden" name="q" value="{{ selected.slug }}"><label for="arg" class="small muted">Requirement</label><input type="text" id="arg" name="arg" value="{{ arg }}"><button>Run</button></form>{% endif %}
+<details><summary class="small">SQL</summary><pre style="margin-top:6px">{{ sql }}</pre></details>
+<p class="small muted" style="margin-top:10px">{{ rows|length }} rows</p>
+{% if rows %}
+<div class="table-wrap"><table>
+  <thead><tr>{% for c in rows[0].keys() %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+  {% for r in rows[:300] %}<tr>{% for v in r.values() %}<td class="small">{{ (v|string)[:160] if v is not none else '' }}</td>{% endfor %}</tr>{% endfor %}
+</table></div>
+{% endif %}
+{% endif %}
+{% endblock %}

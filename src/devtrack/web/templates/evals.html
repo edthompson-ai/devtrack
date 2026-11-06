@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}Evals{% endblock %}
+{% block body %}
+<h1>Eval scorecard</h1>
+<p class="lede muted">The checker against 48 labelled criteria. Every run is stored per prompt version and model, so a change is measured before it ships. Precision and recall treat <strong>fail</strong> as the positive class.</p>
+<div class="flash error" role="note">Labels are AI-generated with a two-pass independent agreement check. Ed specified the process; a third independent AI pass adjudicated the disagreements, which are listed for human review. On a 20-criterion sample the two passes agreed 85% of the time (Cohen's kappa 0.72). Every labeller is a Claude model, like the judge, so a high score shows the models agree, not that they're right. A person relabelling with <code>scripts/relabel.py</code> is the stronger check.</div>
+<div class="table-wrap"><table>
+  <thead><tr><th>Run</th><th>Prompt</th><th>Model</th><th class="num">n</th><th class="num">Accuracy</th><th class="num">Fail precision</th><th class="num">Fail recall</th><th class="num">Unclear rate</th><th class="num">Cost</th><th>When</th></tr></thead>
+  {% for r in runs %}
+  <tr><td class="num">{{ r.id }}</td><td class="mono">{{ r.prompt_version }}</td><td class="mono small">{{ r.model }}</td><td class="num">{{ r.n }}</td>
+    <td class="num">{{ '%.0f%%' % (r.accuracy * 100) }}</td>
+    <td class="num">{{ '%.0f%%' % (r.fail_precision * 100) if r.fail_precision is not none else 'n/a' }}</td>
+    <td class="num">{{ '%.0f%%' % (r.fail_recall * 100) if r.fail_recall is not none else 'n/a' }}</td>
+    <td class="num">{{ '%.0f%%' % (r.unclear_rate * 100) }}</td><td class="num">${{ '%.4f' % r.cost_usd }}</td><td class="mono small">{{ r.started_at | day }}</td></tr>
+  {% else %}<tr><td colspan="10" class="muted">No eval runs yet. Run <code>devtrack eval</code>.</td></tr>{% endfor %}
+</table></div>
+
+{% if latest %}
+<div class="two" style="margin-top:8px">
+<section>
+  <h2>Confusion matrix, run {{ latest.id }}</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Label ↓ / checker →</th>{% for p in labels %}<th class="num">{{ p }}</th>{% endfor %}</tr></thead>
+    {% for e in labels %}<tr><td><span class="pill {{ e }}">{{ e }}</span></td>{% for p in labels %}<td class="num" {% if e == p %}style="font-weight:700"{% endif %}>{{ confusion.get(e, {}).get(p, 0) }}</td>{% endfor %}</tr>{% endfor %}
+  </table></div>
+</section>
+<section>
+  <h2>How to read it</h2>
+  <div class="panel small">
+    <p><strong>Fail precision</strong>: when the checker says fail, how often a person agrees. Low precision wastes reviewers' time.</p>
+    <p><strong>Fail recall</strong>: of the criteria that really fail, how many the checker caught. Low recall lets unbuilt work through, which is the costly error.</p>
+    <p><strong>Unclear rate</strong>: how much is handed to a person. Some is healthy (performance and platform claims can't be read from a diff).</p>
+  </div>
+</section>
+</div>
+<h2>What it got wrong ({{ misses|length }})</h2>
+<div class="table-wrap"><table>
+  <thead><tr><th>Criterion</th><th>Label</th><th>Checker</th><th>Checker's reasoning</th><th>Labeller's rationale</th></tr></thead>
+  {% for m in misses %}<tr><td class="mono">{{ m.key }}<div class="small muted" style="font-family:var(--font);max-width:240px">{{ m.text }}</div></td><td><span class="pill {{ m.expected }}">{{ m.expected }}</span></td><td><span class="pill {{ m.predicted }}">{{ m.predicted }}</span></td><td class="small">{{ m.reasoning }}</td><td class="small muted">{{ m.rationale }}</td></tr>{% endfor %}
+</table></div>
+{% endif %}
+{% endblock %}

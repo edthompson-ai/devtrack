@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Verdict {{ v.id }}{% endblock %}
+{% block body %}
+<p class="small"><a href="{{ url_for('verdicts') }}">All verdicts</a></p>
+<h1><span class="mono">{{ v.key }}</span> <span class="pill {{ v.verdict }}">{{ v.verdict }}</span> <span class="pill {{ v.status }}">{{ v.status.replace('_', ' ') }}</span></h1>
+<p class="lede">{{ v.text }}</p>
+<div class="two">
+  <section>
+    <h2>Verdict</h2>
+    <div class="panel">
+      <p>{{ v.reasoning }}</p>
+      {% if v.evidence %}<ul class="evidence">{% for e in v.evidence %}<li><code>{{ e.quote }}</code></li>{% endfor %}</ul>{% endif %}
+      <p class="small muted" style="margin-top:8px">Confidence {{ '%.2f' % v.confidence }}{% for f in v.flags or [] %} · <span class="flag">{{ f }}</span>{% endfor %}</p>
+    </div>
+  </section>
+  <section>
+    <h2>Provenance</h2>
+    <div class="table-wrap"><table><tbody>
+      <tr><td>Model that answered</td><td class="mono">{{ v.model_version or v.model }}</td></tr>
+      <tr><td>Model requested</td><td class="mono">{{ v.model }}</td></tr>
+      <tr><td>Prompt version</td><td class="mono">{{ v.prompt_version }}</td></tr>
+      <tr><td>Request / session ids</td><td class="mono small">{{ (v.request_ids or ['–'])|join(', ') }}</td></tr>
+      <tr><td>Stop reason</td><td class="mono">{{ v.stop_reason or '–' }}</td></tr>
+      <tr><td>Tokens in / out</td><td class="mono">{{ '{:,}'.format(v.input_tokens) }} / {{ '{:,}'.format(v.output_tokens) }}</td></tr>
+      <tr><td>Cost</td><td class="mono">${{ '%.4f' % v.cost_usd }}</td></tr>
+      <tr><td>Recorded</td><td class="mono">{{ v.created_at | day }}</td></tr>
+    </tbody></table></div>
+    {% if events %}<p class="small muted" style="margin-top:8px">Audit: {% for e in events %}{{ e.action }} by {{ e.actor }}{% if not loop.last %}; {% endif %}{% endfor %}.</p>{% endif %}
+  </section>
+</div>
+<h2>Prompt as sent</h2>
+<details><summary>System prompt</summary><pre>{{ v.prompt_system or 'none: this judge runs locally without a prompt' }}</pre></details>
+<details open><summary>User prompt (the criterion and the redacted, fenced repository text)</summary><pre>{{ v.prompt_user or 'none' }}</pre></details>
+<h2>Raw response{{ 's' if v.raw_responses and v.raw_responses|length > 1 }} as received</h2>
+{% for r in v.raw_responses or [] %}<pre style="margin-bottom:8px">{{ r }}</pre>{% else %}<p class="muted">No model call: {{ v.model }}.</p>{% endfor %}
+{% endblock %}

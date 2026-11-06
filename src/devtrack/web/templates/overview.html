@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Overview{% endblock %}
+{% block body %}
+<h1>Delivery overview</h1>
+<p class="lede muted">Requirements, backlog and real repository activity in one linked database. Counts below are live.</p>
+
+<div class="grid">
+  <a class="panel stat" href="{{ url_for('verification') }}"><div class="n">{{ req_verified }}/{{ req_total }}</div><div class="label">requirements fully verified on the latest build</div></a>
+  <a class="panel stat warn" href="{{ url_for('verification') }}"><div class="n">{{ req_failed }}</div><div class="label">requirements failing verification</div></a>
+  <a class="panel stat attn" href="{{ url_for('verification') }}"><div class="n">{{ open_items }}</div><div class="label">open re-verification items after requirement changes</div></a>
+  <a class="panel stat warn" href="{{ url_for('gaps') }}"><div class="n">{{ no_code }}</div><div class="label">criteria with no linked code</div></a>
+  <a class="panel stat" href="{{ url_for('gaps') }}#no-tests"><div class="n">{{ no_tests }}</div><div class="label">criteria with no linked test</div></a>
+  <a class="panel stat" href="{{ url_for('gaps') }}#orphans"><div class="n">{{ orphan_commits }}</div><div class="label">commits tied to no task</div></a>
+  <a class="panel stat warn" href="{{ url_for('gaps') }}#stale"><div class="n">{{ stale }}</div><div class="label">criteria whose requirement changed after merge</div></a>
+  <a class="panel stat attn" href="{{ url_for('verdicts', status='pending_review') }}"><div class="n">{{ pending_reviews }}</div><div class="label">AI fails waiting for a person</div></a>
+  <a class="panel stat" href="{{ url_for('evals') }}"><div class="n">{% if latest_eval %}{{ '%.0f' % (latest_eval.accuracy * 100) }}%{% else %}–{% endif %}</div><div class="label">checker accuracy{% if latest_eval %} ({{ latest_eval.prompt_version }}){% endif %}</div></a>
+</div>
+
+<div class="two">
+  <section>
+    <h2>Counted verdicts</h2>
+    <div class="panel">
+      <p class="small muted">Latest verdict per criterion. A fail counts only after a person approves it.</p>
+      {% for v in ('pass', 'fail', 'unclear') %}<span class="pill {{ v }}">{{ v }} {{ verdicts.get(v, 0) }}</span> {% endfor %}
+    </div>
+    <h2>Data quality</h2>
+    <div class="panel">
+      <p><strong>{{ dq_ok }}/{{ dq_total }}</strong> checks pass: no orphans, no duplicate links, required fields present.</p>
+      {% for r in dq_failed %}<p class="missing">{{ r.check.name }}: {{ r.failures }} rows</p>{% endfor %}
+    </div>
+  </section>
+  <section>
+    <h2>What's loaded</h2>
+    <div class="table-wrap"><table>
+      <tbody>
+      {% for t, n in counts.items() %}<tr><td>{{ t.replace('_', ' ') }}</td><td class="num">{{ '{:,}'.format(n) }}</td></tr>{% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted" style="margin-top:8px">Commits by source:
+      {% for s in sources %}{{ s.source_system }} {{ s.n }}{% if not loop.last %}, {% endif %}{% endfor %}.
+      "github" rows come from real public repositories; "synthetic" rows are clearly marked demo data.</p>
+  </section>
+</div>
+{% endblock %}

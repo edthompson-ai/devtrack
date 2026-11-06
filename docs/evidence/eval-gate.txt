@@ -1,0 +1,11 @@
+$ devtrack eval-gate   (SQLite, fresh seed)
+PASS  baseline re-run: heuristic now fail recall 0.562, fail precision 0.643; floor fail recall 0.562, fail precision 0.643
+PASS  recorded run v1 / claude-sonnet-5-5: fail recall 0.938, fail precision 0.938
+PASS  recorded run v2 / claude-sonnet-5-5: fail recall 1.0, fail precision 1.0
+exit code 0
+
+$ devtrack eval-gate   (PostgreSQL 16, fresh seed)
+PASS  baseline re-run: heuristic now fail recall 0.562, fail precision 0.643; floor fail recall 0.562, fail precision 0.643
+PASS  recorded run v1 / claude-sonnet-5-5: fail recall 0.938, fail precision 0.938
+PASS  recorded run v2 / claude-sonnet-5-5: fail recall 1.0, fail precision 1.0
+exit code 0

@@ -1,0 +1,9 @@
+{
+  "_about": "The floor for the eval gate (src/devtrack/evals/gate.py): the offline keyword heuristic on the 48 labels in seed/eval_labels.json. A model run must match or beat both fail_recall and fail_precision. Change this file only on purpose, in its own commit, with the reason in the message.",
+  "judge": "heuristic-v1",
+  "n": 48,
+  "accuracy": 0.604,
+  "fail_precision": 0.643,
+  "fail_recall": 0.562,
+  "unclear_rate": 0.271
+}

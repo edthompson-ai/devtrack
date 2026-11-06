@@ -1,0 +1,235 @@
+{
+  "dialect": "postgres",
+  "server": "PostgreSQL 16.15 (Ubuntu 16.15-0ubuntu0.24.04.1)",
+  "scale_factor": 1.0,
+  "generated": {
+    "people": 500,
+    "features": 400,
+    "stories": 4000,
+    "tasks": 20000,
+    "criteria": 16000,
+    "requirements": 1600,
+    "commits": 150000,
+    "prs": 30000,
+    "reviews": 75000
+  },
+  "row_counts": {
+    "commits": 150226,
+    "pull_requests": 30135,
+    "reviews": 75269,
+    "tasks": 20055,
+    "acceptance_criteria": 16064,
+    "commit_tasks": 120055,
+    "task_criteria": 14472,
+    "pull_request_commits": 150179,
+    "requirement_criteria": 16031
+  },
+  "runs_per_query": 5,
+  "index_build_seconds": 0.47,
+  "results": [
+    {
+      "query": "criteria_without_code_or_tests",
+      "title": "Acceptance criteria with no linked commits or no linked tests.",
+      "phase": "before",
+      "median_ms": 105.56,
+      "runs_ms": [
+        123.75,
+        93.84,
+        94.9,
+        124.26,
+        105.56
+      ],
+      "plan_summary": "Seq Scan on commit_tasks; Seq Scan on task_criteria; Seq Scan on acceptance_criteria; Subquery Scan; Seq Scan on criterion_tests; Seq Scan on stories; Seq Scan on features",
+      "plan_text": "Sort (actual rows=16052 loops=1)\n  Sort Key: (CASE WHEN (COALESCE((count(DISTINCT ct_1.commit_id)), '0'::bigint) = 0) THEN 0 ELSE 1 END), a.key\n  Sort Method: quicksort  Memory: 2634kB\n  ->  Hash Join (actual rows=16052 loops=1)\n        Hash Cond: (s.feature_id = f.id)\n        ->  Hash Join (actual rows=16052 loops=1)\n              Hash Cond: (a.story_id = s.id)\n              ->  Hash Left Join (actual rows=16052 loops=1)\n                    Hash Cond: (a.id = ct.criterion_id)\n                    Filter: ((COALESCE((count(DISTINCT ct_1.commit_id)), '0'::bigint) = 0) OR (COALESCE(ct.tests, '0'::bigint) = 0))\n                    Rows Removed by Filter: 12\n                    ->  Hash Right Join (actual rows=16064 loops=1)\n                          Hash Cond: (tc.criterion_id = a.id)\n                          ->  GroupAggregate (actual rows=12861 loops=1)\n                                Group Key: tc.criterion_id\n                                ->  Sort (actual rows=96157 loops=1)\n                                      Sort Key: tc.criterion_id, ct_1.commit_id\n                                      Sort Method: external merge  Disk: 2456kB\n                                      ->  Hash Join (actual rows=96157 loops=1)\n                                            Hash Cond: (ct_1.task_id = tc.task_id)\n                                            ->  Seq Scan on commit_tasks ct_1 (actual rows=120055 loops=1)\n                                            ->  Hash (actual rows=14472 loops=1)\n                                                  Buckets: 16384  Batches: 1  Memory Usage: 807kB\n                                                  ->  Seq Scan on task_criteria tc (actual rows=14472 loops=1)\n                          ->  Hash (actual rows=16064 loops=1)\n                                Buckets: 16384  Batches: 1  Memory Usage: 1848kB\n                                ->  Seq Scan on acceptance_criteria a (actual rows=16064 loops=1)\n                    ->  Hash (actual rows=12 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                          ->  Subquery Scan on ct (actual rows=12 loops=1)\n                                ->  HashAggregate (actual rows=12 loops=1)\n                                      Group Key: criterion_tests.criterion_id\n                                      Batches: 1  Memory Usage: 24kB\n                                      ->  Seq Scan on criterion_tests (actual rows=12 loops=1)\n              ->  Hash (actual rows=4017 loops=1)\n                    Buckets: 4096  Batches: 1  Memory Usage: 284kB\n                    ->  Seq Scan on stories s (actual rows=4017 loops=1)\n        ->  Hash (actual rows=406 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 31kB\n              ->  Seq Scan on features f (actual rows=406 loops=1)"
+    },
+    {
+      "query": "commits_without_task",
+      "title": "Commits not tied to any task (merge commits excluded: they carry no work of their own).",
+      "phase": "before",
+      "median_ms": null,
+      "runs_ms": [],
+      "plan_summary": "timed out; estimated plan only",
+      "plan_text": "Gather Merge  (cost=12879.05..81388230.30 rows=30165 width=134)\n  Workers Planned: 2\n  ->  Sort  (cost=11879.02..11910.45 rows=12569 width=138)\n        Sort Key: c.committed_at DESC\n        ->  Hash Left Join  (cost=3724.82..11023.23 rows=12569 width=138)\n              Hash Cond: (c.author_id = p.id)\n              ->  Hash Anti Join  (cost=3702.24..10967.41 rows=12569 width=130)\n                    Hash Cond: (c.id = ct.commit_id)\n                    ->  Parallel Seq Scan on commits c  (cost=0.00..6918.94 rows=62582 width=130)\n                          Filter: (NOT is_merge)\n                    ->  Hash  (cost=2201.55..2201.55 rows=120055 width=8)\n                          ->  Seq Scan on commit_tasks ct  (cost=0.00..2201.55 rows=120055 width=8)\n              ->  Hash  (cost=15.59..15.59 rows=559 width=24)\n                    ->  Seq Scan on people p  (cost=0.00..15.59 rows=559 width=24)\n  SubPlan 1\n    ->  Limit  (cost=2697.55..2697.56 rows=1 width=4)\n          ->  Sort  (cost=2697.55..2697.56 rows=1 width=4)\n                Sort Key: pr.number\n                ->  Nested Loop  (cost=0.29..2697.54 rows=1 width=4)\n                      ->  Seq Scan on pull_request_commits prc  (cost=0.00..2689.24 rows=1 width=8)\n                            Filter: (commit_id = c.id)\n                      ->  Index Scan using pull_requests_pkey on pull_requests pr  (cost=0.29..8.30 rows=1 width=12)\n                            Index Cond: (id = prc.pull_request_id)\nJIT:\n  Functions: 29\n  Options: Inlining true, Optimization true, Expressions true, Deforming true"
+    },
+    {
+      "query": "cycle_time",
+      "title": "Cycle time: from story start to the merge of the last PR carrying its work.",
+      "phase": "before",
+      "median_ms": 224.5,
+      "runs_ms": [
+        241.93,
+        205.29,
+        244.69,
+        224.5,
+        211.44
+      ],
+      "plan_summary": "Seq Scan on pull_request_commits; Seq Scan on commit_tasks; Seq Scan on tasks; Seq Scan on pull_requests; Seq Scan on stories; Seq Scan on features",
+      "plan_text": "Sort (actual rows=3217 loops=1)\n  Sort Key: (round((EXTRACT(epoch FROM ((max(pr.merged_at)) - s.started_at)) / 3600.0), 1)) DESC\n  Sort Method: quicksort  Memory: 441kB\n  ->  Hash Join (actual rows=3217 loops=1)\n        Hash Cond: (s.feature_id = f.id)\n        ->  Hash Join (actual rows=3217 loops=1)\n              Hash Cond: (t.story_id = s.id)\n              ->  GroupAggregate (actual rows=3217 loops=1)\n                    Group Key: t.story_id\n                    ->  Sort (actual rows=120054 loops=1)\n                          Sort Key: t.story_id, pr.id\n                          Sort Method: external merge  Disk: 4008kB\n                          ->  Hash Join (actual rows=120054 loops=1)\n                                Hash Cond: (prc.pull_request_id = pr.id)\n                                ->  Hash Join (actual rows=120054 loops=1)\n                                      Hash Cond: (ct.task_id = t.id)\n                                      ->  Hash Join (actual rows=120054 loops=1)\n                                            Hash Cond: (prc.commit_id = ct.commit_id)\n                                            ->  Seq Scan on pull_request_commits prc (actual rows=150179 loops=1)\n                                            ->  Hash (actual rows=120055 loops=1)\n                                                  Buckets: 131072  Batches: 1  Memory Usage: 6652kB\n                                                  ->  Seq Scan on commit_tasks ct (actual rows=120055 loops=1)\n                                      ->  Hash (actual rows=20055 loops=1)\n                                            Buckets: 32768  Batches: 1  Memory Usage: 1197kB\n                                            ->  Seq Scan on tasks t (actual rows=20055 loops=1)\n                                ->  Hash (actual rows=30135 loops=1)\n                                      Buckets: 32768  Batches: 1  Memory Usage: 1669kB\n                                      ->  Seq Scan on pull_requests pr (actual rows=30135 loops=1)\n                                            Filter: (merged_at IS NOT NULL)\n              ->  Hash (actual rows=4017 loops=1)\n                    Buckets: 4096  Batches: 1  Memory Usage: 386kB\n                    ->  Seq Scan on stories s (actual rows=4017 loops=1)\n                          Filter: (started_at IS NOT NULL)\n        ->  Hash (actual rows=406 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 31kB\n              ->  Seq Scan on features f (actual rows=406 loops=1)"
+    },
+    {
+      "query": "requirements_changed_after_merge",
+      "title": "Requirements changed after the code for one of their criteria merged.",
+      "phase": "before",
+      "median_ms": 140.01,
+      "runs_ms": [
+        158.83,
+        172.38,
+        140.01,
+        127.45,
+        123.35
+      ],
+      "plan_summary": "Seq Scan on acceptance_criteria; Seq Scan on requirement_criteria; Subquery Scan; Seq Scan on pull_request_commits; Seq Scan on commit_tasks; Seq Scan on task_criteria; Seq Scan on pull_requests; Seq Scan on requirements; Seq Scan on requirement_revisions",
+      "plan_text": "Sort (actual rows=95 loops=1)\n  Sort Key: r.updated_at DESC, r.key, a.key\n  Sort Method: quicksort  Memory: 35kB\n  ->  Hash Left Join (actual rows=95 loops=1)\n        Hash Cond: ((r.id = rev.requirement_id) AND (r.version = rev.version))\n        ->  Hash Join (actual rows=95 loops=1)\n              Hash Cond: (a.id = rc.criterion_id)\n              ->  Seq Scan on acceptance_criteria a (actual rows=16064 loops=1)\n              ->  Hash (actual rows=95 loops=1)\n                    Buckets: 8192  Batches: 1  Memory Usage: 75kB\n                    ->  Hash Join (actual rows=95 loops=1)\n                          Hash Cond: (rc.requirement_id = r.id)\n                          Join Filter: (r.updated_at > cc.last_merge)\n                          Rows Removed by Join Filter: 12734\n                          ->  Hash Join (actual rows=12829 loops=1)\n                                Hash Cond: (rc.criterion_id = cc.criterion_id)\n                                ->  Seq Scan on requirement_criteria rc (actual rows=16031 loops=1)\n                                ->  Hash (actual rows=12860 loops=1)\n                                      Buckets: 16384  Batches: 1  Memory Usage: 731kB\n                                      ->  Subquery Scan on cc (actual rows=12860 loops=1)\n                                            ->  HashAggregate (actual rows=12860 loops=1)\n                                                  Group Key: tc.criterion_id\n                                                  Batches: 1  Memory Usage: 1425kB\n                                                  ->  Hash Join (actual rows=96156 loops=1)\n                                                        Hash Cond: (prc.pull_request_id = pr.id)\n                                                        ->  Hash Join (actual rows=96156 loops=1)\n                                                              Hash Cond: (prc.commit_id = ct.commit_id)\n                                                              ->  Seq Scan on pull_request_commits prc (actual rows=150179 loops=1)\n                                                              ->  Hash (actual rows=96157 loops=1)\n                                                                    Buckets: 131072  Batches: 1  Memory Usage: 5532kB\n                                                                    ->  Hash Join (actual rows=96157 loops=1)\n                                                                          Hash Cond: (ct.task_id = tc.task_id)\n                                                                          ->  Seq Scan on commit_tasks ct (actual rows=120055 loops=1)\n                                                                          ->  Hash (actual rows=14472 loops=1)\n                                                                                Buckets: 16384  Batches: 1  Memory Usage: 807kB\n                                                                                ->  Seq Scan on task_criteria tc (actual rows=14472 loops=1)\n                                                        ->  Hash (actual rows=30135 loops=1)\n                                                              Buckets: 32768  Batches: 1  Memory Usage: 1669kB\n                                                              ->  Seq Scan on pull_requests pr (actual rows=30135 loops=1)\n                                                                    Filter: (merged_at IS NOT NULL)\n                          ->  Hash (actual rows=1609 loops=1)\n                                Buckets: 2048  Batches: 1  Memory Usage: 147kB\n                                ->  Seq Scan on requirements r (actual rows=1609 loops=1)\n        ->  Hash (actual rows=13 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 9kB\n              ->  Seq Scan on requirement_revisions rev (actual rows=13 loops=1)"
+    },
+    {
+      "query": "review_turnaround",
+      "title": "Review turnaround by reviewer: hours from PR opened to that reviewer's first review.",
+      "phase": "before",
+      "median_ms": 62.0,
+      "runs_ms": [
+        62.0,
+        51.88,
+        66.09,
+        60.88,
+        62.23
+      ],
+      "plan_summary": "Seq Scan on reviews; Seq Scan on pull_requests; Seq Scan on people",
+      "plan_text": "Sort (actual rows=503 loops=1)\n  Sort Key: (round(avg((EXTRACT(epoch FROM ((min(reviews.submitted_at)) - pr.created_at)) / 3600.0)), 1)) DESC\n  Sort Method: quicksort  Memory: 68kB\n  ->  HashAggregate (actual rows=503 loops=1)\n        Group Key: p.id\n        Batches: 1  Memory Usage: 297kB\n        ->  Hash Join (actual rows=30096 loops=1)\n              Hash Cond: (reviews.reviewer_id = p.id)\n              ->  Hash Join (actual rows=30096 loops=1)\n                    Hash Cond: (reviews.pull_request_id = pr.id)\n                    ->  HashAggregate (actual rows=30269 loops=1)\n                          Group Key: reviews.reviewer_id, reviews.pull_request_id\n                          Batches: 1  Memory Usage: 3601kB\n                          ->  Seq Scan on reviews (actual rows=75269 loops=1)\n                    ->  Hash (actual rows=30045 loops=1)\n                          Buckets: 32768  Batches: 1  Memory Usage: 1665kB\n                          ->  Seq Scan on pull_requests pr (actual rows=30045 loops=1)\n                                Filter: (created_at IS NOT NULL)\n                                Rows Removed by Filter: 90\n              ->  Hash (actual rows=559 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 47kB\n                    ->  Seq Scan on people p (actual rows=559 loops=1)"
+    },
+    {
+      "query": "full_trace",
+      "title": "Full trace for one requirement: requirement -> criteria -> tasks -> commits -> PRs -> reviews.",
+      "phase": "before",
+      "median_ms": 51.28,
+      "runs_ms": [
+        46.36,
+        55.63,
+        63.62,
+        51.28,
+        50.02
+      ],
+      "plan_summary": "Seq Scan on reviews; Seq Scan on pull_request_commits; Seq Scan on commit_tasks; Seq Scan on task_criteria; Index Scan using requirements_key_key; Index Only Scan using requirement_criteria_pkey; Index Scan using acceptance_criteria_pkey; Index Scan using tasks_pkey; Index Scan using commits_pkey; Index Scan using pull_requests_pkey; Seq Scan on people",
+      "plan_text": "Sort (actual rows=187 loops=1)\n  Sort Key: a.key, t.key, c.committed_at, rv.submitted_at\n  Sort Method: quicksort  Memory: 69kB\n  ->  Hash Left Join (actual rows=187 loops=1)\n        Hash Cond: (rv.reviewer_id = rp.id)\n        ->  Hash Right Join (actual rows=187 loops=1)\n              Hash Cond: (rv.pull_request_id = pr.id)\n              ->  Seq Scan on reviews rv (actual rows=75269 loops=1)\n              ->  Hash (actual rows=75 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 24kB\n                    ->  Nested Loop Left Join (actual rows=75 loops=1)\n                          ->  Hash Right Join (actual rows=75 loops=1)\n                                Hash Cond: (prc.commit_id = c.id)\n                                ->  Seq Scan on pull_request_commits prc (actual rows=150179 loops=1)\n                                ->  Hash (actual rows=75 loops=1)\n                                      Buckets: 1024  Batches: 1  Memory Usage: 22kB\n                                      ->  Nested Loop Left Join (actual rows=75 loops=1)\n                                            ->  Hash Right Join (actual rows=75 loops=1)\n                                                  Hash Cond: (ct.task_id = t.id)\n                                                  ->  Seq Scan on commit_tasks ct (actual rows=120055 loops=1)\n                                                  ->  Hash (actual rows=10 loops=1)\n                                                        Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                                                        ->  Nested Loop Left Join (actual rows=10 loops=1)\n                                                              ->  Hash Right Join (actual rows=10 loops=1)\n                                                                    Hash Cond: (tc.criterion_id = a.id)\n                                                                    ->  Seq Scan on task_criteria tc (actual rows=14472 loops=1)\n                                                                    ->  Hash (actual rows=10 loops=1)\n                                                                          Buckets: 1024  Batches: 1  Memory Usage: 10kB\n                                                                          ->  Nested Loop (actual rows=10 loops=1)\n                                                                                ->  Nested Loop (actual rows=10 loops=1)\n                                                                                      ->  Index Scan using requirements_key_key on requirements r (actual rows=1 loops=1)\n                                                                                            Index Cond: (key = 'SCALE-R-17'::text)\n                                                                                      ->  Index Only Scan using requirement_criteria_pkey on requirement_criteria rc (actual rows=10 loops=1)\n                                                                                            Index Cond: (requirement_id = r.id)\n                                                                                            Heap Fetches: 0\n                                                                                ->  Index Scan using acceptance_criteria_pkey on acceptance_criteria a (actual rows=1 loops=10)\n                                                                                      Index Cond: (id = rc.criterion_id)\n                                                              ->  Index Scan using tasks_pkey on tasks t (actual rows=1 loops=10)\n                                                                    Index Cond: (id = tc.task_id)\n                                            ->  Index Scan using commits_pkey on commits c (actual rows=1 loops=75)\n                                                  Index Cond: (id = ct.commit_id)\n                          ->  Index Scan using pull_requests_pkey on pull_requests pr (actual rows=1 loops=75)\n                                Index Cond: (id = prc.pull_request_id)\n        ->  Hash (actual rows=559 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 42kB\n              ->  Seq Scan on people rp (actual rows=559 loops=1)"
+    },
+    {
+      "query": "fts_commits",
+      "title": "Full-text search on commit messages (ILIKE scan)",
+      "phase": "before",
+      "median_ms": 94.11,
+      "runs_ms": [
+        124.73,
+        119.69,
+        94.11,
+        88.52,
+        90.4
+      ],
+      "plan_summary": "Seq Scan on commits",
+      "plan_text": "Seq Scan on commits (actual rows=0 loops=1)\n  Filter: ((message ~~* '%zstd%'::text) AND (message ~~* '%proxy%'::text))\n  Rows Removed by Filter: 150226"
+    },
+    {
+      "query": "criteria_without_code_or_tests",
+      "title": "Acceptance criteria with no linked commits or no linked tests.",
+      "phase": "after",
+      "median_ms": 103.45,
+      "runs_ms": [
+        101.92,
+        107.89,
+        104.04,
+        102.81,
+        103.45
+      ],
+      "plan_summary": "Index Only Scan using ix_task_criteria_rev; Index Only Scan using ix_commit_tasks_rev; Seq Scan on acceptance_criteria; Subquery Scan; Seq Scan on criterion_tests; Seq Scan on stories; Index Scan using features_pkey",
+      "plan_text": "Sort (actual rows=16052 loops=1)\n  Sort Key: (CASE WHEN (COALESCE((count(DISTINCT ct_1.commit_id)), '0'::bigint) = 0) THEN 0 ELSE 1 END), a.key\n  Sort Method: quicksort  Memory: 2634kB\n  ->  Nested Loop (actual rows=16052 loops=1)\n        ->  Hash Join (actual rows=16052 loops=1)\n              Hash Cond: (a.story_id = s.id)\n              ->  Hash Left Join (actual rows=16052 loops=1)\n                    Hash Cond: (a.id = ct.criterion_id)\n                    Filter: ((COALESCE((count(DISTINCT ct_1.commit_id)), '0'::bigint) = 0) OR (COALESCE(ct.tests, '0'::bigint) = 0))\n                    Rows Removed by Filter: 12\n                    ->  Hash Right Join (actual rows=16064 loops=1)\n                          Hash Cond: (tc.criterion_id = a.id)\n                          ->  GroupAggregate (actual rows=12861 loops=1)\n                                Group Key: tc.criterion_id\n                                ->  Incremental Sort (actual rows=96157 loops=1)\n                                      Sort Key: tc.criterion_id, ct_1.commit_id\n                                      Presorted Key: tc.criterion_id\n                                      Full-sort Groups: 2563  Sort Method: quicksort  Average Memory: 26kB  Peak Memory: 26kB\n                                      ->  Nested Loop (actual rows=96157 loops=1)\n                                            ->  Index Only Scan using ix_task_criteria_rev on task_criteria tc (actual rows=14472 loops=1)\n                                                  Heap Fetches: 0\n                                            ->  Index Only Scan using ix_commit_tasks_rev on commit_tasks ct_1 (actual rows=7 loops=14472)\n                                                  Index Cond: (task_id = tc.task_id)\n                                                  Heap Fetches: 0\n                          ->  Hash (actual rows=16064 loops=1)\n                                Buckets: 16384  Batches: 1  Memory Usage: 1848kB\n                                ->  Seq Scan on acceptance_criteria a (actual rows=16064 loops=1)\n                    ->  Hash (actual rows=12 loops=1)\n                          Buckets: 1024  Batches: 1  Memory Usage: 9kB\n                          ->  Subquery Scan on ct (actual rows=12 loops=1)\n                                ->  HashAggregate (actual rows=12 loops=1)\n                                      Group Key: criterion_tests.criterion_id\n                                      Batches: 1  Memory Usage: 24kB\n                                      ->  Seq Scan on criterion_tests (actual rows=12 loops=1)\n              ->  Hash (actual rows=4017 loops=1)\n                    Buckets: 4096  Batches: 1  Memory Usage: 284kB\n                    ->  Seq Scan on stories s (actual rows=4017 loops=1)\n        ->  Memoize (actual rows=1 loops=16052)\n              Cache Key: s.feature_id\n              Cache Mode: logical\n              Hits: 15646  Misses: 406  Evictions: 0  Overflows: 0  Memory Usage: 51kB\n              ->  Index Scan using features_pkey on features f (actual rows=1 loops=406)\n                    Index Cond: (id = s.feature_id)"
+    },
+    {
+      "query": "commits_without_task",
+      "title": "Commits not tied to any task (merge commits excluded: they carry no work of their own).",
+      "phase": "after",
+      "median_ms": 451.62,
+      "runs_ms": [
+        451.62,
+        455.07,
+        418.06,
+        427.09,
+        471.25
+      ],
+      "plan_summary": "Seq Scan on commits; Index Only Scan using ix_commit_tasks_rev; Seq Scan on people; Index Only Scan using ix_pr_commits_rev; Index Scan using pull_requests_pkey",
+      "plan_text": "Gather Merge (actual rows=30126 loops=1)\n  Workers Planned: 2\n  Workers Launched: 2\n  ->  Sort (actual rows=10042 loops=3)\n        Sort Key: c.committed_at DESC\n        Sort Method: quicksort  Memory: 2108kB\n        Worker 0:  Sort Method: quicksort  Memory: 1573kB\n        Worker 1:  Sort Method: quicksort  Memory: 2646kB\n        ->  Hash Left Join (actual rows=10042 loops=3)\n              Hash Cond: (c.author_id = p.id)\n              ->  Parallel Hash Anti Join (actual rows=10042 loops=3)\n                    Hash Cond: (c.id = ct.commit_id)\n                    ->  Parallel Seq Scan on commits c (actual rows=50060 loops=3)\n                          Filter: (NOT is_merge)\n                          Rows Removed by Filter: 15\n                    ->  Parallel Hash (actual rows=40018 loops=3)\n                          Buckets: 131072  Batches: 1  Memory Usage: 5792kB\n                          ->  Parallel Index Only Scan using ix_commit_tasks_rev on commit_tasks ct (actual rows=40018 loops=3)\n                                Heap Fetches: 0\n              ->  Hash (actual rows=559 loops=3)\n                    Buckets: 1024  Batches: 1  Memory Usage: 42kB\n                    ->  Seq Scan on people p (actual rows=559 loops=3)\n  SubPlan 1\n    ->  Limit (actual rows=1 loops=30126)\n          ->  Sort (actual rows=1 loops=30126)\n                Sort Key: pr.number\n                Sort Method: quicksort  Memory: 25kB\n                ->  Nested Loop (actual rows=1 loops=30126)\n                      ->  Index Only Scan using ix_pr_commits_rev on pull_request_commits prc (actual rows=1 loops=30126)\n                            Index Cond: (commit_id = c.id)\n                            Heap Fetches: 74\n                      ->  Index Scan using pull_requests_pkey on pull_requests pr (actual rows=1 loops=30125)\n                            Index Cond: (id = prc.pull_request_id)"
+    },
+    {
+      "query": "cycle_time",
+      "title": "Cycle time: from story start to the merge of the last PR carrying its work.",
+      "phase": "after",
+      "median_ms": 255.66,
+      "runs_ms": [
+        235.95,
+        255.66,
+        220.51,
+        257.28,
+        279.54
+      ],
+      "plan_summary": "Seq Scan on pull_request_commits; Seq Scan on commit_tasks; Seq Scan on tasks; Seq Scan on pull_requests; Seq Scan on stories; Seq Scan on features",
+      "plan_text": "Sort (actual rows=3217 loops=1)\n  Sort Key: (round((EXTRACT(epoch FROM ((max(pr.merged_at)) - s.started_at)) / 3600.0), 1)) DESC\n  Sort Method: quicksort  Memory: 441kB\n  ->  Hash Join (actual rows=3217 loops=1)\n        Hash Cond: (s.feature_id = f.id)\n        ->  Hash Join (actual rows=3217 loops=1)\n              Hash Cond: (t.story_id = s.id)\n              ->  GroupAggregate (actual rows=3217 loops=1)\n                    Group Key: t.story_id\n                    ->  Sort (actual rows=120054 loops=1)\n                          Sort Key: t.story_id, pr.id\n                          Sort Method: external merge  Disk: 4008kB\n                          ->  Hash Join (actual rows=120054 loops=1)\n                                Hash Cond: (prc.pull_request_id = pr.id)\n                                ->  Hash Join (actual rows=120054 loops=1)\n                                      Hash Cond: (ct.task_id = t.id)\n                                      ->  Hash Join (actual rows=120054 loops=1)\n                                            Hash Cond: (prc.commit_id = ct.commit_id)\n                                            ->  Seq Scan on pull_request_commits prc (actual rows=150179 loops=1)\n                                            ->  Hash (actual rows=120055 loops=1)\n                                                  Buckets: 131072  Batches: 1  Memory Usage: 6652kB\n                                                  ->  Seq Scan on commit_tasks ct (actual rows=120055 loops=1)\n                                      ->  Hash (actual rows=20055 loops=1)\n                                            Buckets: 32768  Batches: 1  Memory Usage: 1197kB\n                                            ->  Seq Scan on tasks t (actual rows=20055 loops=1)\n                                ->  Hash (actual rows=30135 loops=1)\n                                      Buckets: 32768  Batches: 1  Memory Usage: 1669kB\n                                      ->  Seq Scan on pull_requests pr (actual rows=30135 loops=1)\n                                            Filter: (merged_at IS NOT NULL)\n              ->  Hash (actual rows=4017 loops=1)\n                    Buckets: 4096  Batches: 1  Memory Usage: 386kB\n                    ->  Seq Scan on stories s (actual rows=4017 loops=1)\n                          Filter: (started_at IS NOT NULL)\n        ->  Hash (actual rows=406 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 31kB\n              ->  Seq Scan on features f (actual rows=406 loops=1)"
+    },
+    {
+      "query": "requirements_changed_after_merge",
+      "title": "Requirements changed after the code for one of their criteria merged.",
+      "phase": "after",
+      "median_ms": 149.37,
+      "runs_ms": [
+        183.67,
+        158.06,
+        149.37,
+        132.8,
+        145.09
+      ],
+      "plan_summary": "Seq Scan on acceptance_criteria; Seq Scan on requirement_criteria; Subquery Scan; Seq Scan on pull_request_commits; Seq Scan on commit_tasks; Seq Scan on task_criteria; Seq Scan on pull_requests; Seq Scan on requirements; Seq Scan on requirement_revisions",
+      "plan_text": "Sort (actual rows=95 loops=1)\n  Sort Key: r.updated_at DESC, r.key, a.key\n  Sort Method: quicksort  Memory: 35kB\n  ->  Hash Left Join (actual rows=95 loops=1)\n        Hash Cond: ((r.id = rev.requirement_id) AND (r.version = rev.version))\n        ->  Hash Join (actual rows=95 loops=1)\n              Hash Cond: (a.id = rc.criterion_id)\n              ->  Seq Scan on acceptance_criteria a (actual rows=16064 loops=1)\n              ->  Hash (actual rows=95 loops=1)\n                    Buckets: 8192  Batches: 1  Memory Usage: 75kB\n                    ->  Hash Join (actual rows=95 loops=1)\n                          Hash Cond: (rc.requirement_id = r.id)\n                          Join Filter: (r.updated_at > cc.last_merge)\n                          Rows Removed by Join Filter: 12734\n                          ->  Hash Join (actual rows=12829 loops=1)\n                                Hash Cond: (rc.criterion_id = cc.criterion_id)\n                                ->  Seq Scan on requirement_criteria rc (actual rows=16031 loops=1)\n                                ->  Hash (actual rows=12860 loops=1)\n                                      Buckets: 16384  Batches: 1  Memory Usage: 731kB\n                                      ->  Subquery Scan on cc (actual rows=12860 loops=1)\n                                            ->  HashAggregate (actual rows=12860 loops=1)\n                                                  Group Key: tc.criterion_id\n                                                  Batches: 1  Memory Usage: 1425kB\n                                                  ->  Hash Join (actual rows=96156 loops=1)\n                                                        Hash Cond: (prc.pull_request_id = pr.id)\n                                                        ->  Hash Join (actual rows=96156 loops=1)\n                                                              Hash Cond: (prc.commit_id = ct.commit_id)\n                                                              ->  Seq Scan on pull_request_commits prc (actual rows=150179 loops=1)\n                                                              ->  Hash (actual rows=96157 loops=1)\n                                                                    Buckets: 131072  Batches: 1  Memory Usage: 5532kB\n                                                                    ->  Hash Join (actual rows=96157 loops=1)\n                                                                          Hash Cond: (ct.task_id = tc.task_id)\n                                                                          ->  Seq Scan on commit_tasks ct (actual rows=120055 loops=1)\n                                                                          ->  Hash (actual rows=14472 loops=1)\n                                                                                Buckets: 16384  Batches: 1  Memory Usage: 807kB\n                                                                                ->  Seq Scan on task_criteria tc (actual rows=14472 loops=1)\n                                                        ->  Hash (actual rows=30135 loops=1)\n                                                              Buckets: 32768  Batches: 1  Memory Usage: 1669kB\n                                                              ->  Seq Scan on pull_requests pr (actual rows=30135 loops=1)\n                                                                    Filter: (merged_at IS NOT NULL)\n                          ->  Hash (actual rows=1609 loops=1)\n                                Buckets: 2048  Batches: 1  Memory Usage: 147kB\n                                ->  Seq Scan on requirements r (actual rows=1609 loops=1)\n        ->  Hash (actual rows=13 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 9kB\n              ->  Seq Scan on requirement_revisions rev (actual rows=13 loops=1)"
+    },
+    {
+      "query": "review_turnaround",
+      "title": "Review turnaround by reviewer: hours from PR opened to that reviewer's first review.",
+      "phase": "after",
+      "median_ms": 65.57,
+      "runs_ms": [
+        71.83,
+        60.24,
+        64.21,
+        69.28,
+        65.57
+      ],
+      "plan_summary": "Seq Scan on reviews; Seq Scan on pull_requests; Seq Scan on people",
+      "plan_text": "Sort (actual rows=503 loops=1)\n  Sort Key: (round(avg((EXTRACT(epoch FROM ((min(reviews.submitted_at)) - pr.created_at)) / 3600.0)), 1)) DESC\n  Sort Method: quicksort  Memory: 68kB\n  ->  HashAggregate (actual rows=503 loops=1)\n        Group Key: p.id\n        Batches: 1  Memory Usage: 297kB\n        ->  Hash Join (actual rows=30096 loops=1)\n              Hash Cond: (reviews.reviewer_id = p.id)\n              ->  Hash Join (actual rows=30096 loops=1)\n                    Hash Cond: (reviews.pull_request_id = pr.id)\n                    ->  HashAggregate (actual rows=30269 loops=1)\n                          Group Key: reviews.reviewer_id, reviews.pull_request_id\n                          Batches: 1  Memory Usage: 3601kB\n                          ->  Seq Scan on reviews (actual rows=75269 loops=1)\n                    ->  Hash (actual rows=30045 loops=1)\n                          Buckets: 32768  Batches: 1  Memory Usage: 1665kB\n                          ->  Seq Scan on pull_requests pr (actual rows=30045 loops=1)\n                                Filter: (created_at IS NOT NULL)\n                                Rows Removed by Filter: 90\n              ->  Hash (actual rows=559 loops=1)\n                    Buckets: 1024  Batches: 1  Memory Usage: 47kB\n                    ->  Seq Scan on people p (actual rows=559 loops=1)"
+    },
+    {
+      "query": "full_trace",
+      "title": "Full trace for one requirement: requirement -> criteria -> tasks -> commits -> PRs -> reviews.",
+      "phase": "after",
+      "median_ms": 2.22,
+      "runs_ms": [
+        2.22,
+        5.82,
+        2.3,
+        1.74,
+        1.75
+      ],
+      "plan_summary": "Seq Scan on people; Index Scan using requirements_key_key; Index Only Scan using requirement_criteria_pkey; Index Scan using acceptance_criteria_pkey; Index Only Scan using ix_task_criteria_rev; Index Scan using tasks_pkey; Index Only Scan using ix_commit_tasks_rev; Index Scan using commits_pkey; Index Only Scan using ix_pr_commits_rev; Index Scan using pull_requests_pkey; Index Scan using ix_reviews_pr",
+      "plan_text": "Sort (actual rows=187 loops=1)\n  Sort Key: a.key, t.key, c.committed_at, rv.submitted_at\n  Sort Method: quicksort  Memory: 69kB\n  ->  Hash Right Join (actual rows=187 loops=1)\n        Hash Cond: (rp.id = rv.reviewer_id)\n        ->  Seq Scan on people rp (actual rows=559 loops=1)\n        ->  Hash (actual rows=187 loops=1)\n              Buckets: 1024  Batches: 1  Memory Usage: 53kB\n              ->  Nested Loop Left Join (actual rows=187 loops=1)\n                    ->  Nested Loop Left Join (actual rows=75 loops=1)\n                          ->  Nested Loop Left Join (actual rows=75 loops=1)\n                                ->  Nested Loop Left Join (actual rows=75 loops=1)\n                                      ->  Nested Loop Left Join (actual rows=75 loops=1)\n                                            ->  Nested Loop Left Join (actual rows=10 loops=1)\n                                                  ->  Nested Loop Left Join (actual rows=10 loops=1)\n                                                        ->  Nested Loop (actual rows=10 loops=1)\n                                                              ->  Nested Loop (actual rows=10 loops=1)\n                                                                    ->  Index Scan using requirements_key_key on requirements r (actual rows=1 loops=1)\n                                                                          Index Cond: (key = 'SCALE-R-17'::text)\n                                                                    ->  Index Only Scan using requirement_criteria_pkey on requirement_criteria rc (actual rows=10 loops=1)\n                                                                          Index Cond: (requirement_id = r.id)\n                                                                          Heap Fetches: 0\n                                                              ->  Index Scan using acceptance_criteria_pkey on acceptance_criteria a (actual rows=1 loops=10)\n                                                                    Index Cond: (id = rc.criterion_id)\n                                                        ->  Index Only Scan using ix_task_criteria_rev on task_criteria tc (actual rows=1 loops=10)\n                                                              Index Cond: (criterion_id = a.id)\n                                                              Heap Fetches: 0\n                                                  ->  Index Scan using tasks_pkey on tasks t (actual rows=1 loops=10)\n                                                        Index Cond: (id = tc.task_id)\n                                            ->  Index Only Scan using ix_commit_tasks_rev on commit_tasks ct (actual rows=8 loops=10)\n                                                  Index Cond: (task_id = t.id)\n                                                  Heap Fetches: 0\n                                      ->  Index Scan using commits_pkey on commits c (actual rows=1 loops=75)\n                                            Index Cond: (id = ct.commit_id)\n                                ->  Index Only Scan using ix_pr_commits_rev on pull_request_commits prc (actual rows=1 loops=75)\n                                      Index Cond: (commit_id = c.id)\n                                      Heap Fetches: 0\n                          ->  Index Scan using pull_requests_pkey on pull_requests pr (actual rows=1 loops=75)\n                                Index Cond: (id = prc.pull_request_id)\n                    ->  Index Scan using ix_reviews_pr on reviews rv (actual rows=2 loops=75)\n                          Index Cond: (pull_request_id = pr.id)"
+    },
+    {
+      "query": "fts_commits",
+      "title": "Full-text search on commit messages (tsvector + GIN)",
+      "phase": "after",
+      "median_ms": 2.23,
+      "runs_ms": [
+        2.23,
+        2.19,
+        2.24,
+        2.26,
+        2.1
+      ],
+      "plan_summary": "Bitmap Heap Scan on commits; Bitmap Index Scan using ix_commits_search",
+      "plan_text": "Bitmap Heap Scan on commits (actual rows=0 loops=1)\n  Recheck Cond: (search @@ '''zstd'' & ''proxi'''::tsquery)\n  ->  Bitmap Index Scan on ix_commits_search (actual rows=0 loops=1)\n        Index Cond: (search @@ '''zstd'' & ''proxi'''::tsquery)"
+    }
+  ]
+}

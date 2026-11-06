@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Ask{% endblock %}
+{% block body %}
+<h1>Ask the data</h1>
+<p class="lede muted">Common questions in plain English, answered by vetted query templates. The SQL is shown, checked (one SELECT, approved tables only, row limit) and run on a read-only connection. Questions outside the templates get suggestions instead of a guess.</p>
+<form class="inline" method="get" action="{{ url_for('ask_page') }}" role="search">
+  <input class="wide" type="search" name="q" id="q" value="{{ question }}" placeholder="What's untested in the pager feature?" aria-label="Question" autofocus>
+  <button class="primary">Ask</button>
+</form>
+<div class="chips">{% for ex in examples %}<a href="{{ url_for('ask_page', q=ex) }}">{{ ex }}</a>{% endfor %}</div>
+
+{% if answer %}
+  {% if answer.translation %}
+  <h2>{{ answer.translation.explanation }}</h2>
+  <details open><summary class="small">SQL ({{ answer.translation.method }}){% if answer.translation.params %} · parameters {{ answer.translation.params }}{% endif %}</summary>
+    <pre style="margin-top:6px">{{ answer.translation.checked.sql if answer.translation.checked else answer.translation.sql }}</pre></details>
+  {% endif %}
+  {% if answer.error %}<div class="flash error" style="margin-top:12px">{{ answer.error }}</div>
+  {% else %}
+  <p class="small muted" style="margin-top:12px">{{ answer.rows|length }} rows{% if answer.rows|length == 200 %} (row limit reached){% endif %}</p>
+  {% if answer.rows %}
+  <div class="table-wrap"><table>
+    <thead><tr>{% for c in answer.rows[0].keys() %}<th>{{ c }}</th>{% endfor %}</tr></thead>
+    {% for r in answer.rows %}<tr>{% for v in r.values() %}<td class="small">{{ v if v is not none else '' }}</td>{% endfor %}</tr>{% endfor %}
+  </table></div>
+  {% endif %}
+  {% endif %}
+{% endif %}
+{% endblock %}

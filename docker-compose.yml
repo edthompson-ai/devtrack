@@ -1,0 +1,42 @@
+# One command: docker compose up --build
+# Then open http://localhost:8000
+#
+# Passwords below are local-only defaults for the demo database, which is bound to
+# 127.0.0.1. Override them in a .env file (see .env.example) for anything else.
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: devtrack
+      POSTGRES_USER: devtrack
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-devtrack-local-only}
+      POSTGRES_READER_PASSWORD: ${POSTGRES_READER_PASSWORD:-reader-local-only}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./scripts/docker/initdb:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "127.0.0.1:5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U devtrack -d devtrack"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  app:
+    build: .
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://devtrack:${POSTGRES_PASSWORD:-devtrack-local-only}@db:5432/devtrack
+      DATABASE_URL_READONLY: postgresql://devtrack_reader:${POSTGRES_READER_PASSWORD:-reader-local-only}@db:5432/devtrack
+      GITHUB_TOKEN: ${GITHUB_TOKEN:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      CHECKER_MODEL: ${CHECKER_MODEL:-claude-sonnet-5-5}
+      CHECKER_RUN_BUDGET_USD: ${CHECKER_RUN_BUDGET_USD:-2.00}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+    ports:
+      - "127.0.0.1:8000:8000"
+
+volumes:
+  pgdata:

@@ -1,0 +1,43 @@
+Label agreement: two independent AI labelling passes
+Source: seed/relabel_two_pass.json (produced by scripts/relabel_two_pass.py, run 2026-11-04T13:19:43Z)
+
+Labels are AI-generated with a two-pass independent agreement check. Ed specified the process; a third independent AI pass adjudicated the disagreements, which are listed for human review.
+Sample: 20 criteria (seed 7, the items in relabel.html). Model reported: claude-sonnet-5-5.
+
+Pass 1 vs pass 2:              n=20  agree=17/20 (85.0%)  Cohen's kappa=0.718
+Adjudicated vs stored labels:  n=20  agree=18/20 (90.0%)  Cohen's kappa=0.82
+
+Disagreements between the passes (3):
+
+AC-CLICK-102-4: `style()` raises an error for an invalid colour name, and the error message lists the valid colour names.
+  Pass 1: pass. Invalid colours raise an error, but the message does not list the valid
+    colour names, so only part of the criterion is met.
+  Pass 2: fail. The error is raised, but the message only echoes the invalid value and
+    does not list the valid colour names.
+  Adjudicated: fail. The error is raised, but the message 'Unknown color {colour!r}'
+    only echoes the invalid value and doesn't list the valid colour names, so only part
+    of the criterion is met.
+  Stored label: fail
+
+AC-CLICK-202-4: Help output is translated into the user's locale when a translation catalogue is installed.
+  Pass 1: fail. The diff adds help for arguments but no locale or translation-catalogue
+    loading for help output.
+  Pass 2: unclear. The commit adds argument help and wraps some strings in _(), but
+    whether the help output is translated at runtime depends on catalogue behaviour the
+    diff cannot show.
+  Adjudicated: unclear. The diff adds argument help and wraps new strings in _(), but it
+    shows nothing about locale or catalogue loading. Whether help output is translated
+    at runtime can't be settled from it.
+  Stored label: fail
+
+AC-HTTPX-202-1: The redirect helpers (`same_origin`, `is_https_redirect`) live in `_client.py` as private functions, and their tests moved next to the client tests.
+  Pass 1: pass. Helpers moved to _client.py as private functions and the tests moved to
+    tests/client/test_headers.py, next to the client tests.
+  Pass 2: fail. The helpers moved to _client.py as private functions. The tests moved to
+    tests/client/test_headers.py, which is not clearly next to the client tests, and the
+    diff is shortened, so the move is only partly shown.
+  Adjudicated: pass. The helpers are now private functions in _client.py (_same_origin,
+    _is_https_redirect, plus _port_or_default). The tests were moved out of
+    tests/test_utils.py into tests/client/test_headers.py, which is in the client tests
+    directory.
+  Stored label: pass

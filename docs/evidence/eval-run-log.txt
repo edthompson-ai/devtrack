@@ -1,0 +1,13 @@
+Eval runs, 2026-11-04. Claude Code CLI: 2.1.318 (Claude Code). Backend: CHECKER_BACKEND=claude-cli (claude -p --output-format json --system-prompt ... --tools ""), model requested: claude-sonnet-5-5.
+Steps: devtrack init; devtrack seed; devtrack eval --judge heuristic; devtrack eval --judge llm --prompt v1; devtrack eval --judge llm --prompt v2
+
+applied: 001_core, 002_indexes, 003_search, 004_ai, 006_verification, 007_trust
+heuristic-v1 / heuristic: n=48 accuracy=60% fail precision=0.643 fail recall=0.562 unclear=27% cost=$0.0000
+report: /tmp/claude-0/evalrun/report-heuristic.md
+v1 / claude-sonnet-5-5: n=48 accuracy=96% fail precision=0.938 fail recall=0.938 unclear=8% cost=$1.2513
+report: /tmp/claude-0/evalrun/report-v1.md
+v2 / claude-sonnet-5-5: n=48 accuracy=100% fail precision=1.0 fail recall=1.0 unclear=8% cost=$1.2186
+report: /tmp/claude-0/evalrun/report-v2.md
+EVAL-DONE
+
+Retries or CLI errors logged during the runs: 0

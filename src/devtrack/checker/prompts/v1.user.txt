@@ -1,0 +1,9 @@
+Acceptance criterion {criterion_key}:
+{criterion_text}
+
+Story: {story}
+
+Linked commits, oldest first:
+{commits}
+
+Does the code change satisfy the acceptance criterion? Quote the lines that show it.

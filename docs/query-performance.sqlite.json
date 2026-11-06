@@ -1,0 +1,235 @@
+{
+  "dialect": "sqlite",
+  "server": "SQLite 3.53.1",
+  "scale_factor": 1.0,
+  "generated": {
+    "people": 500,
+    "features": 400,
+    "stories": 4000,
+    "tasks": 20000,
+    "criteria": 16000,
+    "requirements": 1600,
+    "commits": 150000,
+    "prs": 30000,
+    "reviews": 75000
+  },
+  "row_counts": {
+    "commits": 150226,
+    "pull_requests": 30135,
+    "reviews": 75269,
+    "tasks": 20055,
+    "acceptance_criteria": 16064,
+    "commit_tasks": 120055,
+    "task_criteria": 14472,
+    "pull_request_commits": 150179,
+    "requirement_criteria": 16031
+  },
+  "runs_per_query": 5,
+  "index_build_seconds": 0.4,
+  "results": [
+    {
+      "query": "criteria_without_code_or_tests",
+      "title": "Acceptance criteria with no linked commits or no linked tests.",
+      "phase": "before",
+      "median_ms": 94.07,
+      "runs_ms": [
+        96.52,
+        91.47,
+        94.9,
+        94.07,
+        92.56
+      ],
+      "plan_summary": "SCAN ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1; SEARCH tc USING COVERING INDEX sqlite_autoindex_task_criteria_1 (task_id=?); SCAN criterion_tests USING COVERING INDEX sqlite_autoindex_criterion_tests_1; SCAN a; SEARCH s USING INTEGER PRIMARY KEY (rowid=?); SEARCH f USING INTEGER PRIMARY KEY (rowid=?); SEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN; SEARCH ct USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN",
+      "plan_text": "MATERIALIZE crit_commits\nSCAN ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1\nSEARCH tc USING COVERING INDEX sqlite_autoindex_task_criteria_1 (task_id=?)\nUSE TEMP B-TREE FOR GROUP BY\nUSE TEMP B-TREE FOR count(DISTINCT)\nMATERIALIZE crit_tests\nSCAN criterion_tests USING COVERING INDEX sqlite_autoindex_criterion_tests_1\nSCAN a\nSEARCH s USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH f USING INTEGER PRIMARY KEY (rowid=?)\nBLOOM FILTER ON cc (criterion_id=?)\nSEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN\nBLOOM FILTER ON ct (criterion_id=?)\nSEARCH ct USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "commits_without_task",
+      "title": "Commits not tied to any task (merge commits excluded: they carry no work of their own).",
+      "phase": "before",
+      "median_ms": null,
+      "runs_ms": [],
+      "plan_summary": "timed out; estimated plan only",
+      "plan_text": "SCAN c\nCORRELATED SCALAR SUBQUERY 2\nSEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?)\nSEARCH p USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nCORRELATED SCALAR SUBQUERY 1\nSCAN pr USING COVERING INDEX sqlite_autoindex_pull_requests_2\nSEARCH prc USING COVERING INDEX sqlite_autoindex_pull_request_commits_1 (pull_request_id=? AND commit_id=?)\nUSE TEMP B-TREE FOR ORDER BY\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "cycle_time",
+      "title": "Cycle time: from story start to the merge of the last PR carrying its work.",
+      "phase": "before",
+      "median_ms": 144.6,
+      "runs_ms": [
+        149.94,
+        144.6,
+        144.75,
+        144.0,
+        144.06
+      ],
+      "plan_summary": "SCAN pr; SEARCH prc USING COVERING INDEX sqlite_autoindex_pull_request_commits_1 (pull_request_id=?); SEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?); SEARCH t USING INTEGER PRIMARY KEY (rowid=?); SCAN sm; SEARCH s USING INTEGER PRIMARY KEY (rowid=?); SEARCH f USING INTEGER PRIMARY KEY (rowid=?)",
+      "plan_text": "CO-ROUTINE story_merges\nSCAN pr\nSEARCH prc USING COVERING INDEX sqlite_autoindex_pull_request_commits_1 (pull_request_id=?)\nSEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?)\nSEARCH t USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR GROUP BY\nUSE TEMP B-TREE FOR count(DISTINCT)\nSCAN sm\nSEARCH s USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH f USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "requirements_changed_after_merge",
+      "title": "Requirements changed after the code for one of their criteria merged.",
+      "phase": "before",
+      "median_ms": 85.54,
+      "runs_ms": [
+        85.54,
+        82.8,
+        84.09,
+        99.38,
+        113.52
+      ],
+      "plan_summary": "SCAN pr; SEARCH prc USING COVERING INDEX sqlite_autoindex_pull_request_commits_1 (pull_request_id=?); SEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?); SEARCH tc USING COVERING INDEX sqlite_autoindex_task_criteria_1 (task_id=?); SCAN r; SEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?); SEARCH a USING INTEGER PRIMARY KEY (rowid=?); SEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?); SEARCH rev USING INDEX sqlite_autoindex_requirement_revisions_1 (requirement_id=? AND version=?) LEFT-JOIN",
+      "plan_text": "CO-ROUTINE criterion_code\nSCAN pr\nSEARCH prc USING COVERING INDEX sqlite_autoindex_pull_request_commits_1 (pull_request_id=?)\nSEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?)\nSEARCH tc USING COVERING INDEX sqlite_autoindex_task_criteria_1 (task_id=?)\nUSE TEMP B-TREE FOR GROUP BY\nSCAN r\nSEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?)\nSEARCH a USING INTEGER PRIMARY KEY (rowid=?)\nBLOOM FILTER ON cc (criterion_id=?)\nSEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?)\nSEARCH rev USING INDEX sqlite_autoindex_requirement_revisions_1 (requirement_id=? AND version=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "review_turnaround",
+      "title": "Review turnaround by reviewer: hours from PR opened to that reviewer's first review.",
+      "phase": "before",
+      "median_ms": 75.47,
+      "runs_ms": [
+        120.6,
+        108.79,
+        75.47,
+        72.88,
+        74.03
+      ],
+      "plan_summary": "SCAN reviews; SCAN fr; SEARCH pr USING INTEGER PRIMARY KEY (rowid=?); SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+      "plan_text": "CO-ROUTINE first_reviews\nSCAN reviews\nUSE TEMP B-TREE FOR GROUP BY\nSCAN fr\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH p USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR GROUP BY\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "full_trace",
+      "title": "Full trace for one requirement: requirement -> criteria -> tasks -> commits -> PRs -> reviews.",
+      "phase": "before",
+      "median_ms": 148.01,
+      "runs_ms": [
+        153.75,
+        145.04,
+        145.73,
+        148.01,
+        188.52
+      ],
+      "plan_summary": "SEARCH r USING COVERING INDEX sqlite_autoindex_requirements_1 (key=?); SEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?); SEARCH a USING INTEGER PRIMARY KEY (rowid=?); SEARCH tc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN; SEARCH t USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH ct USING AUTOMATIC COVERING INDEX (task_id=?) LEFT-JOIN; SEARCH c USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH prc USING AUTOMATIC COVERING INDEX (commit_id=?) LEFT-JOIN; SEARCH pr USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH rv USING AUTOMATIC COVERING INDEX (pull_request_id=?) LEFT-JOIN; SEARCH rp USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN",
+      "plan_text": "SEARCH r USING COVERING INDEX sqlite_autoindex_requirements_1 (key=?)\nSEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?)\nSEARCH a USING INTEGER PRIMARY KEY (rowid=?)\nBLOOM FILTER ON tc (criterion_id=?)\nSEARCH tc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN\nSEARCH t USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nBLOOM FILTER ON ct (task_id=?)\nSEARCH ct USING AUTOMATIC COVERING INDEX (task_id=?) LEFT-JOIN\nSEARCH c USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nBLOOM FILTER ON prc (commit_id=?)\nSEARCH prc USING AUTOMATIC COVERING INDEX (commit_id=?) LEFT-JOIN\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nBLOOM FILTER ON rv (pull_request_id=?)\nSEARCH rv USING AUTOMATIC COVERING INDEX (pull_request_id=?) LEFT-JOIN\nSEARCH rp USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "fts_commits",
+      "title": "Full-text search on commit messages (LIKE scan)",
+      "phase": "before",
+      "median_ms": 18.81,
+      "runs_ms": [
+        24.55,
+        19.92,
+        18.57,
+        18.81,
+        18.25
+      ],
+      "plan_summary": "SCAN commits",
+      "plan_text": "SCAN commits"
+    },
+    {
+      "query": "criteria_without_code_or_tests",
+      "title": "Acceptance criteria with no linked commits or no linked tests.",
+      "phase": "after",
+      "median_ms": 64.45,
+      "runs_ms": [
+        65.11,
+        64.45,
+        63.65,
+        64.39,
+        73.98
+      ],
+      "plan_summary": "SCAN tc USING COVERING INDEX ix_task_criteria_rev; SEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?); SCAN criterion_tests USING COVERING INDEX sqlite_autoindex_criterion_tests_1; SCAN f USING COVERING INDEX sqlite_autoindex_features_1; SEARCH s USING INDEX ix_stories_feature (feature_id=?); SEARCH a USING INDEX ix_criteria_story (story_id=?); SEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN; SEARCH ct USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN",
+      "plan_text": "MATERIALIZE crit_commits\nSCAN tc USING COVERING INDEX ix_task_criteria_rev\nSEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?)\nUSE TEMP B-TREE FOR count(DISTINCT)\nMATERIALIZE crit_tests\nSCAN criterion_tests USING COVERING INDEX sqlite_autoindex_criterion_tests_1\nSCAN f USING COVERING INDEX sqlite_autoindex_features_1\nSEARCH s USING INDEX ix_stories_feature (feature_id=?)\nSEARCH a USING INDEX ix_criteria_story (story_id=?)\nBLOOM FILTER ON cc (criterion_id=?)\nSEARCH cc USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN\nBLOOM FILTER ON ct (criterion_id=?)\nSEARCH ct USING AUTOMATIC COVERING INDEX (criterion_id=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "commits_without_task",
+      "title": "Commits not tied to any task (merge commits excluded: they carry no work of their own).",
+      "phase": "after",
+      "median_ms": 179.5,
+      "runs_ms": [
+        161.72,
+        160.75,
+        195.35,
+        179.5,
+        211.35
+      ],
+      "plan_summary": "SCAN c; SEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?); SEARCH p USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?); SEARCH pr USING INTEGER PRIMARY KEY (rowid=?)",
+      "plan_text": "SCAN c\nCORRELATED SCALAR SUBQUERY 2\nSEARCH ct USING COVERING INDEX sqlite_autoindex_commit_tasks_1 (commit_id=?)\nSEARCH p USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nCORRELATED SCALAR SUBQUERY 1\nSEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?)\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR ORDER BY\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "cycle_time",
+      "title": "Cycle time: from story start to the merge of the last PR carrying its work.",
+      "phase": "after",
+      "median_ms": 366.66,
+      "runs_ms": [
+        430.24,
+        326.47,
+        366.31,
+        366.66,
+        409.77
+      ],
+      "plan_summary": "SCAN t USING COVERING INDEX ix_tasks_story; SEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?); SEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?); SEARCH pr USING INTEGER PRIMARY KEY (rowid=?); SCAN sm; SEARCH s USING INTEGER PRIMARY KEY (rowid=?); SEARCH f USING INTEGER PRIMARY KEY (rowid=?)",
+      "plan_text": "CO-ROUTINE story_merges\nSCAN t USING COVERING INDEX ix_tasks_story\nSEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?)\nSEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?)\nBLOOM FILTER ON pr (id=?)\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR count(DISTINCT)\nSCAN sm\nSEARCH s USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH f USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "requirements_changed_after_merge",
+      "title": "Requirements changed after the code for one of their criteria merged.",
+      "phase": "after",
+      "median_ms": 95.96,
+      "runs_ms": [
+        95.96,
+        94.92,
+        92.65,
+        97.62,
+        104.81
+      ],
+      "plan_summary": "SCAN tc USING COVERING INDEX ix_task_criteria_rev; SEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?); SEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?); SEARCH pr USING INTEGER PRIMARY KEY (rowid=?); SCAN cc; SEARCH rc USING COVERING INDEX ix_req_criteria_rev (criterion_id=?); SEARCH a USING INTEGER PRIMARY KEY (rowid=?); SEARCH r USING INTEGER PRIMARY KEY (rowid=?); SEARCH rev USING INDEX sqlite_autoindex_requirement_revisions_1 (requirement_id=? AND version=?) LEFT-JOIN",
+      "plan_text": "CO-ROUTINE criterion_code\nSCAN tc USING COVERING INDEX ix_task_criteria_rev\nSEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?)\nSEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?)\nBLOOM FILTER ON pr (id=?)\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?)\nSCAN cc\nSEARCH rc USING COVERING INDEX ix_req_criteria_rev (criterion_id=?)\nSEARCH a USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH r USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH rev USING INDEX sqlite_autoindex_requirement_revisions_1 (requirement_id=? AND version=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "review_turnaround",
+      "title": "Review turnaround by reviewer: hours from PR opened to that reviewer's first review.",
+      "phase": "after",
+      "median_ms": 167.73,
+      "runs_ms": [
+        190.37,
+        172.83,
+        165.22,
+        167.73,
+        166.5
+      ],
+      "plan_summary": "SCAN reviews USING INDEX ix_reviews_reviewer_time; SCAN fr; SEARCH pr USING INTEGER PRIMARY KEY (rowid=?); SEARCH p USING INTEGER PRIMARY KEY (rowid=?)",
+      "plan_text": "CO-ROUTINE first_reviews\nSCAN reviews USING INDEX ix_reviews_reviewer_time\nUSE TEMP B-TREE FOR GROUP BY\nSCAN fr\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH p USING INTEGER PRIMARY KEY (rowid=?)\nUSE TEMP B-TREE FOR GROUP BY\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "full_trace",
+      "title": "Full trace for one requirement: requirement -> criteria -> tasks -> commits -> PRs -> reviews.",
+      "phase": "after",
+      "median_ms": 1.2,
+      "runs_ms": [
+        2.23,
+        1.37,
+        1.2,
+        1.17,
+        1.15
+      ],
+      "plan_summary": "SEARCH r USING COVERING INDEX sqlite_autoindex_requirements_1 (key=?); SEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?); SEARCH a USING INTEGER PRIMARY KEY (rowid=?); SEARCH tc USING COVERING INDEX ix_task_criteria_rev (criterion_id=?) LEFT-JOIN; SEARCH t USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?) LEFT-JOIN; SEARCH c USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?) LEFT-JOIN; SEARCH pr USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN; SEARCH rv USING INDEX ix_reviews_pr (pull_request_id=?) LEFT-JOIN; SEARCH rp USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN",
+      "plan_text": "SEARCH r USING COVERING INDEX sqlite_autoindex_requirements_1 (key=?)\nSEARCH rc USING COVERING INDEX sqlite_autoindex_requirement_criteria_1 (requirement_id=?)\nSEARCH a USING INTEGER PRIMARY KEY (rowid=?)\nSEARCH tc USING COVERING INDEX ix_task_criteria_rev (criterion_id=?) LEFT-JOIN\nSEARCH t USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nSEARCH ct USING COVERING INDEX ix_commit_tasks_rev (task_id=?) LEFT-JOIN\nSEARCH c USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nSEARCH prc USING COVERING INDEX ix_pr_commits_rev (commit_id=?) LEFT-JOIN\nSEARCH pr USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nSEARCH rv USING INDEX ix_reviews_pr (pull_request_id=?) LEFT-JOIN\nSEARCH rp USING INTEGER PRIMARY KEY (rowid=?) LEFT-JOIN\nUSE TEMP B-TREE FOR ORDER BY"
+    },
+    {
+      "query": "fts_commits",
+      "title": "Full-text search on commit messages (FTS5)",
+      "phase": "after",
+      "median_ms": 0.86,
+      "runs_ms": [
+        0.93,
+        0.86,
+        1.99,
+        0.67,
+        0.65
+      ],
+      "plan_summary": "SCAN commits_fts VIRTUAL TABLE INDEX 0:M1",
+      "plan_text": "SCAN commits_fts VIRTUAL TABLE INDEX 0:M1"
+    }
+  ]
+}

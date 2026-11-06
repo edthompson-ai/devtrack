@@ -1,0 +1,59 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "devtrack"
+version = "0.1.0"
+description = "Dev Tracking Data Compiler: GitHub + backlog data in one linked database, with an AI acceptance-criteria checker."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31",
+    "flask>=3.0",
+    "pydantic>=2.6",
+]
+
+[project.optional-dependencies]
+postgres = ["psycopg[binary]>=3.1"]
+dev = ["pytest>=8.0", "ruff>=0.5", "mypy>=1.10", "types-requests"]
+
+[project.scripts]
+devtrack = "devtrack.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+devtrack = [
+    "db/migrations/sqlite/*.sql",
+    "db/migrations/postgres/*.sql",
+    "queries/sql/*.sql",
+    "web/templates/*.html",
+    "web/static/*",
+    "checker/prompts/*.txt",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-q"
+markers = ["postgres: needs DATABASE_URL pointing at Postgres and psycopg installed"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py311"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF"]
+# E501: the formatter owns line length; long SQL string literals are clearer unsplit.
+ignore = ["E501", "RUF001", "RUF002", "RUF003"]
+
+[tool.mypy]
+python_version = "3.11"
+mypy_path = "src"
+packages = ["devtrack"]
+strict = true
+warn_unused_ignores = false
+ignore_missing_imports = true

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Audit trail{% endblock %}
+{% block body %}
+<h1>Audit trail</h1>
+<p class="lede muted">Every decision that changes what counts as verified: who made it, when, and on which build. The log is append-only (the database refuses edits and deletes) and hash-chained, so tampering shows.</p>
+<p class="small">{% if chain.ok %}<span class="pill c-verified">Chain intact</span> {{ chain.rows }} events, every hash recomputed on this page load.{% else %}<span class="pill c-failed">Chain broken</span> at event {{ chain.first_bad_id }}: {{ chain.reason }}.{% endif %}</p>
+<form class="inline" method="get">
+  <label for="key" class="small muted">Requirement, criterion or repository</label>
+  <input type="search" id="key" name="key" value="{{ key or '' }}" placeholder="AC-REQ-202-1">
+  <button>Filter</button>{% if key %} <a href="{{ url_for('audit_page') }}">Show all</a>{% endif %}
+</form>
+<div class="table-wrap" style="margin-top:12px"><table>
+  <thead><tr><th>#</th><th>When</th><th>Who</th><th>What</th><th>Subject</th><th>Build</th><th>Detail</th></tr></thead>
+  <tbody>
+  {% for e in events %}
+  <tr>
+    <td class="mono small">{{ e.id }}</td>
+    <td class="mono small">{{ (e.effective_at or e.recorded_at) | day }}{% if e.effective_at %}<div class="muted">logged {{ e.recorded_at | day }}</div>{% endif %}</td>
+    <td>{{ e.actor }}</td>
+    <td class="mono small">{{ e.action }}</td>
+    <td><a class="mono small" href="{{ url_for('audit_page', key=e.entity_key) }}">{{ e.entity_key }}</a></td>
+    <td class="mono small">{% if e.build_run %}{{ e.build_repo }} #{{ e.build_run }}{% else %}–{% endif %}</td>
+    <td class="small">{% for k, v in e.detail.items() if v is not none %}<span class="muted">{{ k }}</span> {{ v }}{% if not loop.last %}; {% endif %}{% endfor %}</td>
+  </tr>
+  {% else %}<tr><td colspan="7" class="muted">No events{% if key %} for {{ key }}{% endif %}.</td></tr>
+  {% endfor %}
+  </tbody>
+</table></div>
+{% endblock %}

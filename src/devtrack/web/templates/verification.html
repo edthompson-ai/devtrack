@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Verification{% endblock %}
+{% block body %}
+<h1>Verification</h1>
+<p class="lede muted">Is each requirement verified, by the method it calls for, on the build that matters? Every result below names the build it applies to. Parent requirements roll up their children: one failure fails the parent.</p>
+
+<form class="inline" method="get">
+  <label for="target" class="small muted">Evaluate against</label>
+  <select id="target" name="target" onchange="this.form.submit()">
+    <option value="" {{ 'selected' if not target }}>Latest main-branch build of each repository</option>
+    {% for repo, group in releases|groupby('repo') %}
+    <optgroup label="{{ repo }} releases">
+      {% for r in group %}<option value="{{ r.repo }}@{{ r.tag }}" {{ 'selected' if target == r.repo ~ '@' ~ r.tag }}>{{ r.tag }} · {{ r.released_at | day }}</option>{% endfor %}
+    </optgroup>
+    {% endfor %}
+  </select>
+  <noscript><button>Show</button></noscript>
+</form>
+
+<div class="legend small" aria-label="Criterion status colours">
+  {% for s in order %}<span><i class="sw {{ s }}"></i>{{ criterion_label[s] }}</span>{% endfor %}
+</div>
+
+<div class="table-wrap">
+<table class="vtable">
+  <thead><tr><th>Requirement</th><th>Method</th><th>Status</th><th>Criteria</th><th>Target build</th></tr></thead>
+  <tbody>
+  {% for r in status %}
+  {% set counts = r.counts %}
+  <tr class="{{ 'rollup' if r.is_rollup }}">
+    <td style="padding-left: {{ 12 + r.depth * 22 }}px">{% if r.is_rollup %}<span class="mono">{{ r.key }}</span>{% else %}<a href="#{{ r.key }}" class="mono">{{ r.key }}</a>{% endif %} <span class="muted small">v{{ r.version }}</span><div class="small">{{ r.title }}</div></td>
+    <td>{{ 'roll-up' if r.is_rollup else r.method }}</td>
+    <td><span class="pill v-{{ r.status }}">{{ r.label }}</span>{% if r.open_items %}<div class="small muted">{{ r.open_items }} open re-verification item{{ 's' if r.open_items != 1 }}</div>{% endif %}</td>
+    {% if r.is_rollup %}
+    <td class="small muted">{{ r.children|length }} requirement{{ 's' if r.children|length != 1 }} below</td>
+    <td class="small muted">each child against its own build</td>
+    {% else %}
+    <td>
+      <div class="tally" role="img" aria-label="{% for s in order if counts[s] %}{{ counts[s] }} {{ criterion_label[s]|lower }}{% if not loop.last %}, {% endif %}{% endfor %}">
+        {% for s in order if counts[s] %}<span class="seg {{ s }}" style="flex:{{ counts[s] }}"></span>{% endfor %}
+      </div>
+      <div class="small muted">{{ counts['verified'] }}/{{ r.criteria|length }} on this build</div>
+    </td>
+    <td>
+      {% if r.target %}
+      <span class="mono">{{ r.target.label }}</span> <span class="mono muted small">{{ r.target.head_sha[:10] }}</span>
+      <div class="small muted">{{ r.repo }} · {{ r.target.finished_at | day }}{% if r.target.status != 'success' %} · <span class="miss-inline">build {{ r.target.status }}</span>{% endif %}{% if r.target.synthetic %} · synthetic CI{% endif %}</div>
+      {% else %}<span class="muted">no build</span>{% endif %}
+    </td>
+    {% endif %}
+  </tr>
+  {% endfor %}
+  </tbody>
+</table>
+</div>
+
+{% for r in status if not r.is_rollup %}
+<section class="vreq" id="{{ r.key }}">
+  <h2><span class="mono">{{ r.key }}</span> · {{ r.title }} <span class="pill v-{{ r.status }}">{{ r.label }}</span></h2>
+  <p class="small muted">Verified by {{ r.method }}. Only {{ r.method }} evidence counts{% if r.target %}; status is against build {{ r.target.label }}{% endif %}.</p>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Criterion</th><th>Status</th><th>Result applies to</th><th>Evidence</th></tr></thead>
+    <tbody>
+    {% for c in r.criteria %}
+    <tr id="{{ r.key }}-{{ c.key }}">
+      <td><span class="mono">{{ c.key }}</span> <a class="small" href="{{ url_for('audit_page', key=c.key) }}">history</a><div class="small">{{ c.text }}</div></td>
+      <td><span class="pill c-{{ c.status }}">{{ c.label }}</span></td>
+      <td>
+        {% if c.result_build %}
+          <span class="mono">build {{ c.result_build.label }}</span>
+          <div class="small muted mono">{{ c.result_build.head_sha[:10] }}</div>
+          <div class="small muted">{{ c.result_build.finished_at | day }}</div>
+        {% else %}<span class="muted">–</span>{% endif %}
+      </td>
+      <td class="small">
+        {% if c.result %}
+          {% if c.result.source == 'test_runs' %}
+            <ul class="tests">{% for e in c.result.evidence %}{% set parts = e.test.split('::') %}<li><span class="outcome {{ e.outcome }}">{{ e.outcome }}</span> <code>{{ parts[-1] }}</code><span class="path">{{ parts[0] }}</span>{% if e.message %}<span class="why">{{ e.message }}</span>{% endif %}</li>{% endfor %}</ul>
+          {% else %}
+            {{ c.result.method|capitalize }} {{ c.result.result }}, signed off by <strong>{{ c.result.verified_by }}</strong> on {{ c.result.verified_at | day }}{% if c.result.note %}<div class="muted">{{ c.result.note }}</div>{% endif %}
+          {% endif %}
+        {% endif %}
+        {% for i in c.open_items %}<div class="reopen">Re-verify: requirement changed to v{{ i.version }} on {{ i.opened_at | day }}; no passing {{ r.method }} since.</div>{% endfor %}
+        {% if c.invalidated %}
+        <details><summary>{{ c.invalidated|length }} invalidated result{{ 's' if c.invalidated|length != 1 }}</summary>
+          <ul class="tests">{% for x in c.invalidated[-6:] %}<li class="muted">build {{ x.build }}: {{ x.result }} · {{ x.reason }}</li>{% endfor %}</ul>
+          {% if c.invalidated|length > 6 %}<p class="muted">and {{ c.invalidated|length - 6 }} earlier.</p>{% endif %}
+        </details>
+        {% endif %}
+        {% if not c.result and not c.open_items %}<span class="missing">No {{ r.method }} evidence recorded.</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endfor %}
+
+<div class="two">
+  <section>
+    <h2>Recent builds</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Build</th><th>Repository</th><th>Commit</th><th>Result</th><th>Finished</th></tr></thead>
+      <tbody>
+      {% for b in builds %}
+      <tr><td class="mono">{{ b.label }}</td><td class="small">{{ b.repo }}</td><td class="mono small">{{ b.head_sha[:10] }}</td>
+          <td><span class="outcome {{ 'passed' if b.status == 'success' else 'failed' if b.status == 'failure' else 'skipped' }}">{{ b.status }}</span></td>
+          <td class="mono small">{{ b.finished_at | day }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted" style="margin-top:8px">In the offline demo the builds and test results are synthetic (git keeps no CI history) and flagged as such; release tags are real. A live sync reads GitHub Actions runs, and <code>devtrack ingest-junit</code> loads real test reports.</p>
+  </section>
+  <section>
+    <h2>Data classification</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Repository</th><th>Class</th><th>External models</th></tr></thead>
+      <tbody>
+      {% for p in policies %}
+      <tr><td>{{ p.repo }}<div class="small muted">{{ p.note or '' }}</div></td>
+          <td><span class="pill k-{{ p.classification }}">{{ p.classification }}</span>{% if not p.explicit %}<div class="small muted">default</div>{% endif %}</td>
+          <td class="small">{{ 'blocked' if p.classification == 'controlled' else 'allowed' }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    <p class="small muted" style="margin-top:8px">A repository with no classification is treated as controlled. Controlled code is only ever judged by an approved internal model.</p>
+  </section>
+</div>
+{% endblock %}

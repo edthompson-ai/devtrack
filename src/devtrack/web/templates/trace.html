@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Trace{% endblock %}
+{% block body %}
+<h1>Trace</h1>
+<p class="lede muted">Requirement → acceptance criteria → tasks → commits → pull requests → reviews, with each criterion's AI verdict and its verification on the latest build.</p>
+<form class="inline" method="get">
+  <label for="req" class="small muted">Requirement</label>
+  <select id="req" name="req" onchange="this.form.submit()">
+    {% for r in reqs %}<option value="{{ r.key }}" {{ 'selected' if req and r.key == req.key }}>{{ r.key }}: {{ r.title }}</option>{% endfor %}
+  </select>
+  <noscript><button>Show</button></noscript>
+</form>
+
+{% if req %}
+<div class="panel" style="margin-top:14px">
+  <h3>{{ req.key }} · v{{ req.version }} <span class="muted small">changed {{ req.updated_at | day }}</span></h3>
+  <p>{{ req.body }}</p>
+  {% if revisions|length > 1 %}
+  <details><summary>{{ revisions|length }} versions</summary>
+    <div class="table-wrap" style="margin-top:8px"><table>
+      <thead><tr><th>v</th><th>Changed</th><th>Text</th><th>Why</th></tr></thead>
+      {% for rv in revisions %}<tr><td>{{ rv.version }}</td><td class="mono">{{ rv.changed_at | day }}</td><td>{{ rv.body }}</td><td class="muted">{{ rv.change_note or '' }}</td></tr>{% endfor %}
+    </table></div>
+  </details>
+  {% endif %}
+</div>
+
+<h2>{{ criteria|length }} acceptance criteria</h2>
+<div class="chain">
+{% for key, c in criteria.items() %}
+  <div class="criterion {{ 'gap' if not c.tasks or (c.tasks.values()|map(attribute='commits')|select|list|length == 0) }}">
+    <div class="head">
+      <span class="key">{{ key }}</span>
+      {% set v = verdicts.get(key) %}
+      {% if v %}<span class="pill {{ v.verdict }}">{{ v.verdict }}</span>{% if v.status == 'pending_review' %} <span class="pill pending_review">awaiting review</span>{% elif v.status == 'rejected' %} <span class="pill rejected">fail overturned</span>{% endif %}{% else %}<span class="pill final">not checked</span>{% endif %}
+      {% set ver = verification.get(key) %}
+      {% if ver %}<a class="pill c-{{ ver.status }}" href="{{ url_for('verification') }}#{{ req.key }}-{{ key }}" title="verification against the latest build">{{ ver.label }}{% if ver.result_build %} · build {{ ver.result_build.label }}{% endif %}</a>{% endif %}
+      {% if key in stale %}<span class="flag hot" title="the requirement changed after this criterion's code merged">requirement changed after merge</span>{% endif %}
+    </div>
+    <p>{{ c.text }}</p>
+    {% if not c.tasks %}<p class="missing">No task is linked to this criterion.</p>{% endif %}
+    {% for tkey, t in c.tasks.items() %}
+      <div class="node">
+        <strong class="mono">{{ tkey }}</strong> <span class="muted small">{{ t.status }}</span>
+        {% if not t.commits %}<p class="missing">No commits linked to this task.</p>{% endif %}
+        <ul class="commits">
+        {% for sha, cm in t.commits.items() %}
+          <li>
+            <a class="mono" href="https://github.com/{{ cm.repo }}/commit/{{ sha }}" rel="noopener">{{ sha | short }}</a>
+            {% if cm.pr %}· PR <a href="https://github.com/{{ cm.repo }}/pull/{{ cm.pr }}" rel="noopener">#{{ cm.pr }}</a> {{ cm.pr_title }} <span class="muted small">merged {{ cm.merged_at | day }}</span>{% else %}<span class="muted small">· not in any PR</span>{% endif %}
+            {% if cm.reviews %}<div class="small muted">Reviews: {% for rv in cm.reviews %}{{ rv.reviewer }} ({{ rv.state|lower|replace('_', ' ') }}){% if not loop.last %}, {% endif %}{% endfor %}</div>{% endif %}
+          </li>
+        {% endfor %}
+        </ul>
+      </div>
+    {% endfor %}
+  </div>
+{% endfor %}
+</div>
+{% endif %}
+{% endblock %}

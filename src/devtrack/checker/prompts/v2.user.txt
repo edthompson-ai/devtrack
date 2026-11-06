@@ -1,0 +1,15 @@
+Feature: {feature}
+Story: {story}
+Requirement text this criterion serves:
+{requirements}
+
+Acceptance criterion {criterion_key}:
+{criterion_text}
+
+Tasks linked to it: {tasks}
+Tests linked to it: {tests}
+
+Linked commits, oldest first ({n_commits} total{truncation_note}):
+{commits}
+
+Decide whether the final state of this code satisfies the acceptance criterion. Reply with the JSON object only.

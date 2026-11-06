@@ -1,0 +1,225 @@
+<title>Blind Relabel Check</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: one review sheet at a time, a 20-cell progress strip on top, the verdict bar pinned to the bottom. */
+:root {
+  --bg: #f6f7f9; --sheet: #ffffff; --ink: #18212b; --muted: #5a6573; --line: #d8dde5;
+  --accent: #0e6a70; --accent-soft: #e2f1f1; --code: #f0f2f5;
+  --pass: #1d7548; --pass-soft: #e3f3ea; --fail: #b1261c; --fail-soft: #fbe9e7; --unclear: #8a5a00; --unclear-soft: #fbf1dc;
+  --sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #12161b; --sheet: #191e25; --ink: #e5e9ee; --muted: #9aa4b2; --line: #2b323c;
+  --accent: #5cc3c6; --accent-soft: #15302f; --code: #20262e;
+  --pass: #63c995; --pass-soft: #15291f; --fail: #f08a80; --fail-soft: #33191a; --unclear: #e3b45f; --unclear-soft: #2f2514;
+  color-scheme: dark; } }
+:root[data-theme="dark"] {
+  --bg: #12161b; --sheet: #191e25; --ink: #e5e9ee; --muted: #9aa4b2; --line: #2b323c;
+  --accent: #5cc3c6; --accent-soft: #15302f; --code: #20262e;
+  --pass: #63c995; --pass-soft: #15291f; --fail: #f08a80; --fail-soft: #33191a; --unclear: #e3b45f; --unclear-soft: #2f2514;
+  color-scheme: dark; }
+*, *::before, *::after { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 16px/1.55 var(--sans); }
+.wrap { max-width: 860px; margin: 0 auto; padding-block: 20px 140px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1 { font-size: 1.35rem; font-weight: 600; margin: 0 0 4px; text-wrap: balance; }
+h2 { font-size: 1.05rem; font-weight: 600; margin: 0; }
+p { margin: 0; max-width: 68ch; }
+.muted { color: var(--muted); }
+.small { font-size: 0.86rem; }
+.mono { font-family: var(--mono); }
+.intro { display: grid; gap: 10px; margin-bottom: 18px; }
+.strip { display: grid; grid-template-columns: repeat(var(--n), 1fr); gap: 3px; margin: 14px 0 6px; }
+.strip button { height: 10px; border: 0; border-radius: 2px; background: var(--line); padding: 0; cursor: pointer; }
+.strip button.pass { background: var(--pass); } .strip button.fail { background: var(--fail); }
+.strip button.unclear { background: var(--unclear); }
+.strip button.here { outline: 2px solid var(--accent); outline-offset: 2px; }
+.sheet { background: var(--sheet); border: 1px solid var(--line); border-radius: 10px; padding: 20px; display: grid; gap: 16px; min-width: 0; }
+.where { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: baseline; }
+.key { font-family: var(--mono); font-weight: 500; color: var(--accent); }
+.criterion { font-size: 1.2rem; line-height: 1.45; font-weight: 500; max-width: 62ch; }
+.req { border-left: 3px solid var(--line); padding-left: 12px; color: var(--muted); }
+.tests { display: flex; flex-wrap: wrap; gap: 6px; }
+.tests code { font-family: var(--mono); font-size: 0.8rem; background: var(--code); padding: 2px 6px; border-radius: 4px; word-break: break-all; }
+details.commit { border: 1px solid var(--line); border-radius: 8px; min-width: 0; }
+details.commit summary { cursor: pointer; padding: 10px 12px; display: flex; gap: 10px; flex-wrap: wrap; align-items: baseline; }
+details.commit summary .msg { flex: 1 1 260px; min-width: 0; }
+pre { margin: 0; background: var(--code); padding: 12px; overflow-x: auto; font: 0.78rem/1.5 var(--mono); border-top: 1px solid var(--line); white-space: pre; }
+pre .add { color: var(--pass); } pre .del { color: var(--fail); } pre .hunk { color: var(--accent); }
+.none { padding: 12px; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); }
+.bar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--sheet); border-top: 1px solid var(--line);
+  padding-top: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px));
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.bar .in { max-width: 860px; margin: 0 auto; display: grid; gap: 8px; }
+.verdicts { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; }
+button, input, textarea { font: inherit; color: var(--ink); }
+.v { border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 10px 8px; font-weight: 600; cursor: pointer; }
+.v kbd { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); font-weight: 400; margin-left: 4px; }
+.v.pass { color: var(--pass); } .v.fail { color: var(--fail); } .v.unclear { color: var(--unclear); }
+.v.pass.on { background: var(--pass-soft); border-color: var(--pass); }
+.v.fail.on { background: var(--fail-soft); border-color: var(--fail); }
+.v.unclear.on { background: var(--unclear-soft); border-color: var(--unclear); }
+.ghost { border: 1px solid var(--line); background: transparent; border-radius: 8px; padding: 8px 12px; cursor: pointer; }
+.primary { border: 1px solid var(--accent); background: var(--accent); color: var(--sheet); border-radius: 8px; padding: 9px 14px; font-weight: 600; cursor: pointer; }
+input[type=text], textarea { width: 100%; border: 1px solid var(--line); background: var(--sheet); border-radius: 8px; padding: 8px 10px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.score { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.fig { border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; background: var(--sheet); }
+.fig .n { font-size: 1.9rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+.tablewrap { overflow-x: auto; }
+table { border-collapse: collapse; font-variant-numeric: tabular-nums; }
+th, td { border: 1px solid var(--line); padding: 6px 12px; text-align: right; }
+th:first-child { text-align: left; }
+td.same { background: var(--accent-soft); font-weight: 600; }
+.dis { display: grid; gap: 10px; }
+.dis > div { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; background: var(--sheet); }
+.lab { font-family: var(--mono); font-size: 0.8rem; font-weight: 500; }
+.lab.pass { color: var(--pass); } .lab.fail { color: var(--fail); } .lab.unclear { color: var(--unclear); }
+@media (max-width: 520px) { .verdicts { grid-template-columns: repeat(3, 1fr); } .verdicts .ghost { grid-column: 1 / -1; } }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+
+<div class="wrap">
+  <div class="intro">
+    <h1>Blind relabel check</h1>
+    <p class="muted">You see exactly what the AI checker sees for each acceptance criterion: the criterion, its requirement, and the linked commit messages and diffs. Decide whether that code meets the criterion. The stored label stays hidden until you finish, then this page shows how often you agree with it.</p>
+    <p class="small muted"><strong>Pass</strong>: the linked code clearly meets the whole criterion. <strong>Fail</strong>: it clearly doesn't, or nothing is linked. <strong>Unclear</strong>: the diff can't settle it (runtime behaviour, performance, partial evidence).</p>
+  </div>
+  <div id="label-view">
+    <div class="where small"><span id="pos" class="mono"></span><span id="saved" class="muted"></span></div>
+    <div class="strip" id="strip" aria-label="Progress"></div>
+    <div class="sheet" id="sheet"></div>
+  </div>
+  <div id="result-view" hidden></div>
+</div>
+
+<div class="bar" id="bar">
+  <div class="in">
+    <div class="verdicts" role="group" aria-label="Your label">
+      <button class="v pass" id="b-pass" data-v="pass">Pass<kbd>P</kbd></button>
+      <button class="v fail" id="b-fail" data-v="fail">Fail<kbd>F</kbd></button>
+      <button class="v unclear" id="b-unclear" data-v="unclear">Unclear<kbd>U</kbd></button>
+      <button class="ghost" id="back">Back</button>
+    </div>
+    <input type="text" id="note" placeholder="Optional note: why you chose this" aria-label="Optional note">
+  </div>
+</div>
+
+<script>
+const DATA = /*__RELABEL_DATA__*/null;
+const SAMPLE = DATA || {seed: 0, items: [{key: "AC-EXAMPLE-1", text: "Example only: export this page with scripts/relabel.py to load the real sample.", story: "Example story", feature: "Example feature", requirements: [], tests: [], commits: []}], answers: btoa("{}")};
+const items = SAMPLE.items;
+const store = "relabel-" + SAMPLE.seed + "-" + items.length;
+let state = {i: 0, labels: {}, notes: {}, name: ""};
+try { const s = JSON.parse(localStorage.getItem(store) || "null"); if (s) state = Object.assign(state, s); } catch (e) {}
+const $ = (id) => document.getElementById(id);
+const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+
+function save() { try { localStorage.setItem(store, JSON.stringify(state)); $("saved").textContent = "Progress saved in this browser"; } catch (e) { $("saved").textContent = ""; } }
+
+function diffHtml(diff) {
+  return diff.split("\n").map((l) => {
+    const cls = l.startsWith("+") && !l.startsWith("+++") ? "add" : l.startsWith("-") && !l.startsWith("---") ? "del" : l.startsWith("@@") ? "hunk" : "";
+    return cls ? `<span class="${cls}">${esc(l)}</span>` : esc(l);
+  }).join("\n");
+}
+
+function render() {
+  const it = items[state.i];
+  $("pos").textContent = `${state.i + 1} of ${items.length} · ${Object.keys(state.labels).length} labelled`;
+  const strip = $("strip");
+  strip.style.setProperty("--n", items.length);
+  strip.innerHTML = items.map((x, j) => `<button class="${state.labels[x.key] || ""} ${j === state.i ? "here" : ""}" data-j="${j}" aria-label="Item ${j + 1}${state.labels[x.key] ? ", labelled " + state.labels[x.key] : ""}"></button>`).join("");
+  const commits = it.commits.length
+    ? it.commits.map((c, j) => `<details class="commit" ${j === 0 ? "open" : ""}><summary><span class="mono small">${esc(c.repo)} ${esc(c.sha)}</span>${c.prs.length ? `<span class="small muted">PR #${c.prs.join(", #")}</span>` : ""}<span class="msg">${esc(c.message.split("\n")[0])}</span></summary><pre>${diffHtml(c.message + "\n\n" + c.diff)}</pre></details>`).join("")
+    : `<div class="none">No commits are linked to this criterion.</div>`;
+  $("sheet").innerHTML = `
+    <div class="where"><span class="key">${esc(it.key)}</span><span class="small muted">${esc(it.feature)} › ${esc(it.story)}</span></div>
+    <p class="criterion">${esc(it.text)}</p>
+    ${it.requirements.map((r) => `<p class="req small">${esc(r)}</p>`).join("")}
+    ${it.tests.length ? `<div class="tests"><span class="small muted">Linked tests</span>${it.tests.map((t) => `<code>${esc(t)}</code>`).join("")}</div>` : ""}
+    <div style="display:grid;gap:8px;min-width:0"><h2>Linked code (${it.commits.length} commit${it.commits.length === 1 ? "" : "s"})</h2>${commits}</div>`;
+  for (const v of ["pass", "fail", "unclear"]) $("b-" + v).classList.toggle("on", state.labels[it.key] === v);
+  $("note").value = state.notes[it.key] || "";
+  $("back").disabled = state.i === 0;
+}
+
+function choose(v) {
+  const it = items[state.i];
+  state.labels[it.key] = v;
+  const note = $("note").value.trim();
+  if (note) state.notes[it.key] = note; else delete state.notes[it.key];
+  const next = items.findIndex((x, j) => j > state.i && !state.labels[x.key]);
+  const anyLeft = items.findIndex((x) => !state.labels[x.key]);
+  save();
+  if (anyLeft === -1) return showResult();
+  state.i = next !== -1 ? next : anyLeft;
+  render();
+  window.scrollTo(0, 0);
+}
+
+function kappa(pairs) {
+  const n = pairs.length; if (!n) return null;
+  const L = ["pass", "fail", "unclear"];
+  const po = pairs.filter(([a, b]) => a === b).length / n;
+  const pe = L.reduce((s, l) => s + pairs.filter(([a]) => a === l).length * pairs.filter(([, b]) => b === l).length, 0) / (n * n);
+  return pe === 1 ? (po === 1 ? 1 : null) : (po - pe) / (1 - pe);
+}
+
+function showResult() {
+  const answers = JSON.parse(atob(SAMPLE.answers));
+  const keys = items.map((x) => x.key).filter((k) => answers[k]);
+  const pairs = keys.map((k) => [answers[k].label, state.labels[k]]);
+  const agree = pairs.filter(([a, b]) => a === b).length;
+  const k = kappa(pairs);
+  const L = ["pass", "fail", "unclear"];
+  const reading = k === null ? "" : k < 0.4 ? "Too noisy to evaluate a checker against." : k < 0.6 ? "Moderate. Discuss the disagreements before trusting accuracy numbers." : k < 0.8 ? "Good agreement." : "Very good agreement.";
+  const out = {labeler: state.name || "", seed: SAMPLE.seed, labels: state.labels, notes: state.notes};
+  const dis = keys.filter((x) => answers[x].label !== state.labels[x]);
+  $("label-view").hidden = true; $("bar").hidden = true;
+  const r = $("result-view"); r.hidden = false;
+  r.innerHTML = `
+    <div style="display:grid;gap:18px">
+      <h2>Your labels against the stored ones</h2>
+      <div class="score">
+        <div class="fig"><div class="n">${Math.round(100 * agree / (pairs.length || 1))}%</div><div class="small muted">agreement (${agree} of ${pairs.length})</div></div>
+        <div class="fig"><div class="n">${k === null ? "n/a" : k.toFixed(2)}</div><div class="small muted">Cohen's kappa. ${reading}</div></div>
+      </div>
+      <div class="tablewrap"><table><thead><tr><th>Stored ↓ / yours →</th>${L.map((l) => `<th>${l}</th>`).join("")}</tr></thead><tbody>
+        ${L.map((a) => `<tr><th>${a}</th>${L.map((b) => `<td class="${a === b ? "same" : ""}">${pairs.filter(([x, y]) => x === a && y === b).length}</td>`).join("")}</tr>`).join("")}
+      </tbody></table></div>
+      <div class="dis"><h2>Where you disagree (${dis.length})</h2>${dis.map((x) => `<div><div class="where"><span class="key">${esc(x)}</span><span class="small">stored <span class="lab ${answers[x].label}">${answers[x].label}</span>, you <span class="lab ${state.labels[x]}">${state.labels[x]}</span></span></div><p class="small muted">Stored reason: ${esc(answers[x].rationale)}</p>${state.notes[x] ? `<p class="small">Your note: ${esc(state.notes[x])}</p>` : ""}</div>`).join("") || `<p class="muted">None.</p>`}</div>
+      <div style="display:grid;gap:8px">
+        <h2>Keep your labels</h2>
+        <p class="small muted">Copy them and send them back, or save them as a file and run <code class="mono">python scripts/relabel.py score my-labels.json</code>.</p>
+        <label class="small" for="name">Your name (goes in the file)</label>
+        <input type="text" id="name" value="${esc(state.name)}" placeholder="Your name">
+        <textarea id="json" rows="6" class="mono small" readonly></textarea>
+        <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="primary" id="copy">Copy labels</button><button class="ghost" id="again">Review my labels</button></div>
+        <p id="copied" class="small muted" role="status"></p>
+      </div>
+    </div>`;
+  const fill = () => { out.labeler = state.name; $("json").value = JSON.stringify(out, null, 2); };
+  fill();
+  $("name").addEventListener("input", (e) => { state.name = e.target.value; save(); fill(); });
+  $("copy").addEventListener("click", () => {
+    navigator.clipboard.writeText($("json").value).then(() => { $("copied").textContent = "Copied."; })
+      .catch(() => { $("json").select(); $("copied").textContent = "Copy didn't work here. The text is selected: copy it by hand."; });
+  });
+  $("again").addEventListener("click", () => { r.hidden = true; $("label-view").hidden = false; $("bar").hidden = false; state.i = 0; render(); });
+  window.scrollTo(0, 0);
+}
+
+for (const v of ["pass", "fail", "unclear"]) $("b-" + v).addEventListener("click", () => choose(v));
+$("back").addEventListener("click", () => { if (state.i > 0) { state.i--; render(); } });
+$("strip").addEventListener("click", (e) => { const j = e.target.dataset.j; if (j !== undefined) { state.i = +j; render(); } });
+document.addEventListener("keydown", (e) => {
+  if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.metaKey || e.ctrlKey) return;
+  const v = {p: "pass", f: "fail", u: "unclear"}[e.key.toLowerCase()];
+  if (v && !$("bar").hidden) choose(v);
+});
+if (items.every((x) => state.labels[x.key])) showResult(); else render();
+</script>

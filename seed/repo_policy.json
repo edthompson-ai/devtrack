@@ -1,0 +1,9 @@
+{
+  "_about": "Data classification per repository. 'controlled' means export-controlled or otherwise restricted: its code may never be sent to an external model. Repositories missing from this list are treated as controlled (the policy fails closed).",
+  "set_by": "arjun-patel",
+  "repos": {
+    "pallets/click": {"classification": "public", "note": "Open-source dependency."},
+    "psf/requests": {"classification": "public", "note": "Open-source dependency."},
+    "encode/httpx": {"classification": "public", "note": "Open-source dependency."}
+  }
+}

@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>{% block title %}Dev Tracking{% endblock %} · Dev Tracking Data Compiler</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+<header class="top">
+  <div class="inner">
+    <div class="brand"><strong>Dev Tracking Data Compiler</strong><span class="db">{{ dialect }}</span></div>
+    <nav class="tabs" aria-label="Sections">
+      {% set here = request.endpoint %}
+      <a href="{{ url_for('overview') }}" class="{{ 'on' if here == 'overview' }}">Overview</a>
+      <a href="{{ url_for('verification') }}" class="{{ 'on' if here == 'verification' }}">Verification</a>
+      <a href="{{ url_for('audit_page') }}" class="{{ 'on' if here == 'audit_page' }}">Audit</a>
+      <a href="{{ url_for('trace') }}" class="{{ 'on' if here == 'trace' }}">Trace</a>
+      <a href="{{ url_for('gaps') }}" class="{{ 'on' if here == 'gaps' }}">Gaps</a>
+      <a href="{{ url_for('verdicts') }}" class="{{ 'on' if here == 'verdicts' }}">AI verdicts{% if pending_reviews %}<span class="count" title="fails awaiting review">{{ pending_reviews }}</span>{% endif %}</a>
+      <a href="{{ url_for('evals') }}" class="{{ 'on' if here == 'evals' }}">Evals</a>
+      <a href="{{ url_for('performance') }}" class="{{ 'on' if here == 'performance' }}">Query performance</a>
+      <a href="{{ url_for('queries') }}" class="{{ 'on' if here == 'queries' }}">Saved queries</a>
+      <a href="{{ url_for('ask_page') }}" class="{{ 'on' if here == 'ask_page' }}">Ask</a>
+    </nav>
+  </div>
+</header>
+<main>
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}<div class="flash {{ cat }}" role="status">{{ msg }}</div>{% endfor %}
+  {% endwith %}
+  {% block body %}{% endblock %}
+</main>
+</body>
+</html>

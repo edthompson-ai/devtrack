@@ -1,0 +1,44 @@
+$ devtrack status --criteria   (2026-11-04T12:49Z, SQLite, seed data)
+SYS-01             v1 roll-up       Failed                     roll-up of SUB-CLI-01, SUB-HTTP-01
+  SUB-CLI-01       v1 roll-up       Failed                     roll-up of REQ-CLICK-01, REQ-CLICK-02, REQ-CLICK-03
+    REQ-CLICK-01   v2 test          Failed                     pallets/click #1049 2247b35ea1
+    AC-CLICK-101-1     Verified                   build #1049
+    AC-CLICK-101-2     Verified                   build #1049
+    AC-CLICK-101-3     Failed                     build #1049
+    AC-CLICK-103-4     Verified                   build #1049
+    REQ-CLICK-02   v1 test          Partially verified         pallets/click #1049 2247b35ea1
+    AC-CLICK-102-1     Verified                   build #1049
+    AC-CLICK-102-2     Verified                   build #1049
+    AC-CLICK-102-3     Verified                   build #1049
+    AC-CLICK-102-4     Not verified               
+    AC-CLICK-102-5     Verified                   build #1049
+    REQ-CLICK-03   v1 inspection    Partially verified         pallets/click #1049 2247b35ea1
+    AC-CLICK-201-1     Verified                   build #1049
+    AC-CLICK-201-3     Verified                   build #1049
+    AC-CLICK-201-4     Not verified               
+    AC-CLICK-204-2     Verified on older build    build #1028
+  SUB-HTTP-01      v1 roll-up       Failed                     roll-up of REQ-HTTPX-01, REQ-HTTPX-02, REQ-HTTPX-03, REQ-REQ-01, REQ-REQ-02, REQ-REQ-03
+    REQ-HTTPX-01   v2 test          Needs re-verification      encode/httpx #1047 b5addb64f0
+    AC-HTTPX-101-1     Re-verify                    re-verify since v2
+    AC-HTTPX-101-2     Re-verify                    re-verify since v2
+    AC-HTTPX-101-3     Re-verify                    re-verify since v2
+    AC-HTTPX-101-4     Re-verify                    re-verify since v2
+    AC-HTTPX-101-5     Re-verify                    re-verify since v2
+    AC-HTTPX-101-6     Re-verify                    re-verify since v2
+    REQ-HTTPX-02   v1 test          Not verified               encode/httpx #1047 b5addb64f0
+    AC-HTTPX-201-1     Not verified               
+    AC-HTTPX-201-2     Not verified               
+    AC-HTTPX-201-3     Not verified               
+    REQ-HTTPX-03   v1 inspection    Failed                     encode/httpx #1047 b5addb64f0
+    AC-HTTPX-102-3     Failed                     build #1047
+    REQ-REQ-01     v1 test          Partially verified         psf/requests #1051 d38495c906
+    AC-REQ-101-1       Verified                   build #1051
+    AC-REQ-101-2       Verified                   build #1051
+    AC-REQ-101-3       Not verified               
+    REQ-REQ-02     v3 analysis      Needs re-verification      psf/requests #1051 d38495c906
+    AC-REQ-201-1       Re-verify                    re-verify since v3
+    AC-REQ-202-1       Re-verify                    re-verify since v3
+    AC-REQ-202-2       Re-verify                    re-verify since v3
+    REQ-REQ-03     v1 demonstration Partially verified         psf/requests #1051 d38495c906
+    AC-REQ-203-1       Verified on older build    build #1036 (v2.34.0)
+    AC-REQ-203-3       Not verified               

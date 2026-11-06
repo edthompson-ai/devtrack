@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+{% block title %}AI verdicts{% endblock %}
+{% block body %}
+<h1>AI verdicts</h1>
+<p class="lede muted">Every checker verdict with its evidence. A <strong>fail</strong> waits here until a person approves it; only then does it count. Rejected fails never count. "Full exchange" shows the exact prompt sent and the raw response received.</p>
+<div class="chips">
+  <a href="{{ url_for('verdicts') }}">All</a>
+  <a href="{{ url_for('verdicts', status='pending_review') }}">Waiting for review</a>
+  <a href="{{ url_for('verdicts', status='final') }}">Final</a>
+  <a href="{{ url_for('verdicts', status='approved') }}">Approved fails</a>
+  <a href="{{ url_for('verdicts', status='rejected') }}">Rejected fails</a>
+</div>
+<div class="table-wrap" style="margin-top:12px"><table>
+  <thead><tr><th>Criterion</th><th>Verdict</th><th>Evidence and reasoning</th><th>Model</th><th>Status</th></tr></thead>
+  {% for r in rows %}
+  <tr>
+    <td class="mono">{{ r.key }}<div class="small muted" style="font-family:var(--font);max-width:260px">{{ r.text }}</div></td>
+    <td><span class="pill {{ r.verdict }}">{{ r.verdict }}</span><div class="small muted">{{ '%.2f' % r.confidence }}</div></td>
+    <td class="clip">
+      <div class="small">{{ r.reasoning }}</div>
+      {% if r.evidence %}<ul class="evidence">{% for e in r.evidence %}<li><code>{{ e.quote }}</code></li>{% endfor %}</ul>{% endif %}
+      {% for f in r.flags %}<span class="flag {{ 'hot' if f in ('injection_suspected', 'unsupported_pass', 'evidence_not_found') }}">{{ f }}</span>{% endfor %}
+    </td>
+    <td class="small mono">{{ r.model_version or r.model }}<div class="muted">{{ r.prompt_version }}</div>{% if r.cost_usd and r.cost_usd > 0 %}<div class="muted">${{ '%.4f' % r.cost_usd }}</div>{% endif %}{% if r.has_exchange %}<div><a href="{{ url_for('verdict_detail', verdict_id=r.id) }}">full exchange</a></div>{% endif %}</td>
+    <td>
+      <span class="pill {{ r.status }}">{{ r.status.replace('_', ' ') }}</span>
+      {% if r.status == 'pending_review' %}
+      <form class="inline" method="post" action="{{ url_for('review', verdict_id=r.id, status=status) }}">
+        <input type="hidden" name="csrf" value="{{ csrf_token() }}">
+        <input type="text" name="reviewer" placeholder="Your name" required aria-label="Reviewer name" size="10">
+        <button class="approve" name="decision" value="approved" title="Confirm the fail: it counts">Confirm fail</button>
+        <button class="reject" name="decision" value="rejected" title="Overturn: the fail doesn't count">Overturn</button>
+      </form>
+      {% endif %}
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="5" class="muted">No verdicts yet. Run <code>devtrack check --all</code>.</td></tr>
+  {% endfor %}
+</table></div>
+{% endblock %}
